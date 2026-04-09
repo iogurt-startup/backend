@@ -15,8 +15,8 @@ export class PrismaPatientsRepository implements IPatientsRepository {
     return prisma.patient.findUnique({ where: { id }, include: withTutor })
   }
 
-  async update(id: string, data: UpdatePatientDTO): Promise<Patient> {
-    return prisma.patient.update({ where: { id }, data })
+  async update(id: string, data: UpdatePatientDTO): Promise<PatientWithTutor> {
+    return prisma.patient.update({ where: { id }, data, include: withTutor })
   }
 
   async list({ search, tutorId, species, updateDate, page = 1, perPage = 20 }: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }> {

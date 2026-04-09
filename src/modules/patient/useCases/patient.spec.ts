@@ -78,12 +78,30 @@ describe('ListPatientsUseCase', () => {
 describe('UpdatePatientUseCase', () => {
   it('deve atualizar o nome do paciente', async () => {
     const patientsRepo = new InMemoryPatientsRepository()
-    await patientsRepo.create(makeInput())
-    const updated = await new UpdatePatientUseCase(patientsRepo).execute({ id: patientsRepo.items[0].id, name: 'Rex Jr.' })
+    const tutorsRepo = new InMemoryTutorsRepository()
+    const tutor = await tutorsRepo.create({ fullName: 'Maria', cpf: '12345678901', phone: '61999' })
+    const created = await patientsRepo.create(makeInput({ tutorId: tutor.id }))
+    const updated = await new UpdatePatientUseCase(patientsRepo, tutorsRepo).execute({ id: created.id, name: 'Rex Jr.' })
     expect(updated.name).toBe('Rex Jr.')
   })
 
+  it('deve atualizar dados do tutor ao editar paciente', async () => {
+    const patientsRepo = new InMemoryPatientsRepository()
+    const tutorsRepo = new InMemoryTutorsRepository()
+    const tutor = await tutorsRepo.create({ fullName: 'Maria', cpf: '12345678901', phone: '61999' })
+    const created = await patientsRepo.create(makeInput({ tutorId: tutor.id }))
+    
+    const updated = await new UpdatePatientUseCase(patientsRepo, tutorsRepo).execute({
+      id: created.id,
+      tutor: { fullName: 'Maria Silva', phone: '61988888888' }
+    })
+    
+    expect(updated.tutor.fullName).toBe('Maria Silva')
+    expect(updated.tutor.phone).toBe('61988888888')
+  })
+
   it('deve lançar 404 para paciente inexistente', async () => {
-    await expect(new UpdatePatientUseCase(new InMemoryPatientsRepository()).execute({ id: 'id-fake' })).rejects.toMatchObject({ statusCode: 404 })
+    const tutorsRepo = new InMemoryTutorsRepository()
+    await expect(new UpdatePatientUseCase(new InMemoryPatientsRepository(), tutorsRepo).execute({ id: 'id-fake' })).rejects.toMatchObject({ statusCode: 404 })
   })
 })

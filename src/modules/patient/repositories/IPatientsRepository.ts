@@ -31,6 +31,15 @@ export interface UpdatePatientDTO {
   photoUrl?: string
 }
 
+export interface UpdatePatientTutorDTO {
+  fullName?: string
+  cpf?: string
+  phone?: string
+  email?: string
+  address?: string
+  insurance?: string
+}
+
 export interface ListPatientsDTO {
   search?: string
   tutorId?: string
@@ -43,6 +52,6 @@ export interface ListPatientsDTO {
 export interface IPatientsRepository {
   create(data: CreatePatientDTO): Promise<Patient>
   findById(id: string): Promise<PatientWithTutor | null>
-  update(id: string, data: UpdatePatientDTO): Promise<Patient>
+  update(id: string, data: UpdatePatientDTO): Promise<PatientWithTutor>
   list(params: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }>
 }

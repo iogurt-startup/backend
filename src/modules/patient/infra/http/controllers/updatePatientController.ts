@@ -13,6 +13,14 @@ export const updatePatientBodySchema = z.object({
   microchip: z.string().optional(),
   allergies: z.string().optional(),
   photoUrl: z.string().optional(),
+  tutor: z.object({
+    fullName: z.string().optional(),
+    cpf: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().email().optional(),
+    address: z.string().optional(),
+    insurance: z.string().optional(),
+  }).optional(),
 })
 
 export async function updatePatientController(
@@ -20,7 +28,8 @@ export async function updatePatientController(
   reply: FastifyReply,
 ) {
   const body = updatePatientBodySchema.parse(request.body)
+  const { tutor, ...patientData } = body
   const useCase = makeUpdatePatientUseCase()
-  const patient = await useCase.execute({ id: request.params.id, ...body })
+  const patient = await useCase.execute({ id: request.params.id, ...patientData, tutor })
   return reply.status(200).send({ patient })
 }
