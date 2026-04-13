@@ -5,12 +5,13 @@ import type { Appointment } from '@prisma/client'
 interface RescheduleAppointmentRequest {
   appointmentId: string
   newDateTime: Date
+  newEndDateTime?: Date
 }
 
 export class RescheduleAppointmentUseCase {
   constructor(private appointmentsRepository: IAppointmentsRepository) {}
 
-  async execute({ appointmentId, newDateTime }: RescheduleAppointmentRequest): Promise<Appointment> {
+  async execute({ appointmentId, newDateTime, newEndDateTime }: RescheduleAppointmentRequest): Promise<Appointment> {
     const appointment = await this.appointmentsRepository.findById(appointmentId)
 
     if (!appointment) {
@@ -25,6 +26,10 @@ export class RescheduleAppointmentUseCase {
       throw new AppError('A nova data deve ser no futuro.', 400)
     }
 
-    return this.appointmentsRepository.reschedule(appointmentId, newDateTime)
+    if (newEndDateTime && newEndDateTime <= newDateTime) {
+      throw new AppError('O horário de fim deve ser posterior ao horário de início.', 400)
+    }
+
+    return this.appointmentsRepository.reschedule(appointmentId, newDateTime, newEndDateTime)
   }
 }

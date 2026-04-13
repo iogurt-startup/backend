@@ -8,6 +8,7 @@ export const rescheduleAppointmentParamsSchema = z.object({
 
 export const rescheduleAppointmentBodySchema = z.object({
   dateTime: z.string().datetime(),
+  endDateTime: z.string().datetime().optional(),
 })
 
 export async function rescheduleAppointmentController(
@@ -18,10 +19,14 @@ export async function rescheduleAppointmentController(
   reply: FastifyReply
 ) {
   const { id } = request.params
-  const { dateTime } = request.body
+  const { dateTime, endDateTime } = request.body
 
   const useCase = makeRescheduleAppointmentUseCase()
-  const appointment = await useCase.execute({ appointmentId: id, newDateTime: new Date(dateTime) })
+  const appointment = await useCase.execute({
+    appointmentId: id,
+    newDateTime: new Date(dateTime),
+    newEndDateTime: endDateTime ? new Date(endDateTime) : undefined,
+  })
 
   return reply.status(200).send(appointment)
 }

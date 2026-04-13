@@ -47,10 +47,13 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
     })
   }
 
-  async reschedule(id: string, newDateTime: Date): Promise<Appointment> {
+  async reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment> {
     return prisma.appointment.update({
       where: { id },
-      data: { dateTime: newDateTime },
+      data: {
+        dateTime: newDateTime,
+        ...(newEndDateTime !== undefined && { endDateTime: newEndDateTime }),
+      },
     })
   }
 }

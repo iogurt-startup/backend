@@ -12,6 +12,7 @@ export interface CreateAppointmentDTO {
   patientId: string
   vetId: string
   dateTime: Date
+  endDateTime?: Date
   category: AppointmentCategory
   observation?: string
 }
@@ -22,5 +23,5 @@ export interface IAppointmentsRepository {
   listByDay(date: Date, vetId?: string): Promise<AppointmentWithRelations[]>
   updateStatus(id: string, status: AppointmentStatus): Promise<Appointment>
   cancel(id: string, reason: string): Promise<Appointment>
-  reschedule(id: string, newDateTime: Date): Promise<Appointment>
+  reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment>
 }

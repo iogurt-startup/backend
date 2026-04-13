@@ -120,6 +120,7 @@ model Appointment {
   patientId    String              @map("patient_id")
   vetId        String              @map("vet_id")
   dateTime     DateTime            @map("date_time")
+  endDateTime  DateTime?           @map("end_date_time")
   category     AppointmentCategory
   status       AppointmentStatus   @default(SCHEDULED)
   observation  String?

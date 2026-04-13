@@ -16,6 +16,7 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
       patientId: data.patientId,
       vetId: data.vetId,
       dateTime: data.dateTime,
+      endDateTime: data.endDateTime ?? null,
       category: data.category,
       status: AppointmentStatus.SCHEDULED,
       observation: data.observation ?? null,
@@ -59,9 +60,12 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
     return this.items[index]
   }
 
-  async reschedule(id: string, newDateTime: Date): Promise<Appointment> {
+  async reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment> {
     const index = this.items.findIndex(a => a.id === id)
     this.items[index].dateTime = newDateTime
+    if (newEndDateTime !== undefined) {
+      this.items[index].endDateTime = newEndDateTime
+    }
     this.items[index].updatedAt = new Date()
     return this.items[index]
   }

@@ -20,6 +20,10 @@ export class CreateAppointmentUseCase {
     if (!patient) throw Errors.notFound('Paciente não encontrado')
     if (!vet) throw Errors.notFound('Veterinário não encontrado')
 
+    if (input.endDateTime && input.endDateTime <= input.dateTime) {
+      throw Errors.badRequest('O horário de fim deve ser posterior ao horário de início.')
+    }
+
     return this.appointmentsRepository.create(input)
   }
 }
