@@ -43,10 +43,16 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependências
-        run: npm ci
+        run: npm ci --legacy-peer-deps
+
+      - name: Verificar vulnerabilidades das dependências
+        run: npm audit --audit-level=low
 
       - name: Gerar Prisma Client
         run: npx prisma generate
+
+      - name: Rodar Linter
+        run: npm run lint
 
       - name: Rodar Typecheck
         run: npm run typecheck
@@ -75,6 +81,9 @@ jobs:
     name: Build da Imagem Docker
     needs: lint-e-testes
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -83,17 +92,17 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login no Docker Hub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
 
       - name: Build e Push
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/iougurt-api:latest
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' }}
+          tags: ${{ env.DOCKERHUB_USERNAME != '' && format('{0}/iougurt-api:latest', env.DOCKERHUB_USERNAME) || 'iougurt/iougurt-api:latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

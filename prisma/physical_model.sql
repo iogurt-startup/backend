@@ -15,6 +15,9 @@
 CREATE TYPE "Role" AS ENUM ('OWNER', 'VET', 'TUTOR');
 
 -- CreateEnum
+CREATE TYPE "PasswordTokenType" AS ENUM ('FIRST_ACCESS', 'RECOVERY');
+
+-- CreateEnum
 CREATE TYPE "AppointmentCategory" AS ENUM ('VACCINATION', 'OBSERVATION', 'EXAM', 'SURGICAL');
 
 -- CreateEnum
@@ -68,8 +71,10 @@ CREATE TABLE "password_tokens" (
     "id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
+    "type" "PasswordTokenType" NOT NULL DEFAULT 'RECOVERY',
     "expires_at" TIMESTAMP(3) NOT NULL,
     "used_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "password_tokens_pkey" PRIMARY KEY ("id")
 );
@@ -186,6 +191,9 @@ CREATE UNIQUE INDEX "refresh_tokens_token_key" ON "refresh_tokens"("token");
 CREATE UNIQUE INDEX "password_tokens_token_key" ON "password_tokens"("token");
 
 -- CreateIndex
+CREATE INDEX "password_tokens_user_id_type_idx" ON "password_tokens"("user_id", "type");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "tutors_user_id_key" ON "tutors"("user_id");
 
 -- CreateIndex
@@ -193,6 +201,9 @@ CREATE UNIQUE INDEX "tutors_cpf_clinic_id_key" ON "tutors"("cpf", "clinic_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tutors_email_clinic_id_key" ON "tutors"("email", "clinic_id");
+
+-- CreateIndex
+CREATE INDEX "appointments_vet_id_date_time_idx" ON "appointments"("vet_id", "date_time");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "clinical_records_appointment_id_key" ON "clinical_records"("appointment_id");

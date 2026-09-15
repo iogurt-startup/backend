@@ -4,6 +4,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   PORT: z.coerce.number().default(3000),
   APP_URL: z.string().url().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   JWT_SECRET: z.string().min(1),
   // Origens permitidas para CORS. Use '*' para liberar todas (default) ou uma

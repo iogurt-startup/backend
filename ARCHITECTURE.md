@@ -21,7 +21,7 @@ O **IOUGURT** é um sistema de gestão para clínicas veterinárias. O backend �
 | **Documentação** | Swagger/OpenAPI (@fastify/swagger) | Auto-gerado a partir dos schemas Zod |
 | **Upload de Arquivos** | @fastify/multipart | Suporte a PDF e imagens (exames) |
 | **PDF** | pdfkit | Geração de receituário veterinário |
-| **IA** | Google Gemini 1.5 Flash | Resumo simplificado do atendimento |
+| **IA** | Google Gemini 2.5 Flash | Resumo simplificado do atendimento |
 | **Testes** | Vitest | Rápido, compatível com ESM, zero config |
 | **Infraestrutura** | Docker + Docker Compose | Ambiente reproduzível dev/prod |
 
@@ -223,10 +223,22 @@ request.user.role
 #### Auth (`/auth`)
 | Método | Rota | Descrição | Auth |
 |---|---|---|---|
-| `POST` | `/auth/register` | Criar conta (OWNER ou VET) | ❌ |
+| `POST` | `/auth/register` | Criar conta de OWNER e sua clínica | ❌ |
+| `POST` | `/auth/register/vet` | Criar conta de veterinário (apenas OWNER) | 🔒 |
 | `POST` | `/auth/login` | Login com email/senha | ❌ |
 | `POST` | `/auth/refresh` | Renovar access token | ❌ |
 | `DELETE` | `/auth/logout` | Encerrar sessão | 🔒 |
+| `POST` | `/auth/google` | Login ou cadastro com Google | ❌ |
+| `GET` | `/auth/me` | Consultar usuário autenticado | 🔒 |
+| `PATCH` | `/auth/me` | Atualizar o próprio perfil | 🔒 |
+| `POST` | `/auth/password/forgot` | Solicitar recuperação de senha | ❌ |
+| `POST` | `/auth/password/reset` | Redefinir senha com token | ❌ |
+
+#### Clínica (`/clinics`)
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| `GET` | `/clinics/me` | Consultar a clínica do usuário autenticado | 🔒 |
+| `PATCH` | `/clinics/me` | Atualizar dados da clínica (apenas OWNER) | 🔒 |
 
 #### Tutores (`/tutors`)
 | Método | Rota | Descrição | Auth |
@@ -283,8 +295,9 @@ request.user.role
 #### Dashboard (`/dashboard`)
 | Método | Rota | Descrição | Auth |
 |---|---|---|---|
-| `GET` | `/dashboard` | Visão do dia (VET ou OWNER) | 🔒 |
-| `GET` | `/dashboard/metrics` | Métricas gerenciais (só OWNER) | 🔒 |
+| `GET` | `/dashboard/daily` | Visão do dia (VET ou OWNER) | 🔒 |
+| `GET` | `/dashboard/admin` | Métricas gerenciais (só OWNER) | 🔒 |
+| `GET` | `/dashboard/admin/appointments-trend` | Tendência de agendamentos (só OWNER) | 🔒 |
 
 ---
 
@@ -462,7 +475,7 @@ Pontos a observar:
 
 ## 10. Histórias de Usuário × Implementação × Critérios PC2
 
-Tabela-resumo (16/16 implementadas). Logo abaixo, cada US tem **arquivo de produção**, **trecho de teste de integração** e **quais critérios do PC2 ela demonstra**.
+Tabela-resumo das US01–US16. As histórias complementares US17–US20 estão documentadas em [us_stories.md](./us_stories.md), com critérios de aceite e rastreabilidade para as rotas e testes.
 
 | US | Feature | Rota(s) | Spec de integração |
 |---|---|---|---|

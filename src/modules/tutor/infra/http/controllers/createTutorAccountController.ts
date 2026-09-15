@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
-import { CreateTutorAccountUseCase } from '../../../useCases/createTutorAccountUseCase'
+import { makeCreateTutorAccountUseCase } from '../../../useCases/factories/makeCreateTutorAccountUseCase'
 
 export const createTutorAccountParamsSchema = z.object({
   id: z.string().uuid(),
@@ -20,7 +20,7 @@ export async function createTutorAccountController(
   const { id: tutorId } = request.params
   const { email } = request.body
 
-  const useCase = new CreateTutorAccountUseCase()
+  const useCase = makeCreateTutorAccountUseCase(request.log)
   const result = await useCase.execute({ tutorId, email })
 
   return reply.status(201).send(result)

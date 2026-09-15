@@ -9,6 +9,8 @@ import { googleAuthController, googleAuthBodySchema } from './controllers/google
 import { getMeController, updateMeController, updateUserBodySchema } from './controllers/meController'
 import { sendForgotPasswordMailController, sendForgotPasswordMailBodySchema } from './controllers/sendForgotPasswordMailController'
 import { resetPasswordController, resetPasswordBodySchema } from './controllers/resetPasswordController'
+import { verifyPasswordTokenController, verifyPasswordTokenQuerySchema } from './controllers/verifyPasswordTokenController'
+import { setPasswordController, setPasswordBodySchema } from './controllers/setPasswordController'
 import { verifyJwt } from '@shared/middleware/verify-jwt'
 import { verifyRole } from '@shared/middleware/verify-role'
 
@@ -107,4 +109,22 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       body: resetPasswordBodySchema,
     },
   }, resetPasswordController)
+
+  app.get('/verify-token', {
+    config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+    schema: {
+      tags: ['Auth'],
+      summary: 'Validar token de primeiro acesso ou recuperação de senha',
+      querystring: verifyPasswordTokenQuerySchema,
+    },
+  }, verifyPasswordTokenController)
+
+  app.post('/set-password', {
+    config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    schema: {
+      tags: ['Auth'],
+      summary: 'Definir senha a partir de um token de primeiro acesso ou recuperação',
+      body: setPasswordBodySchema,
+    },
+  }, setPasswordController)
 }

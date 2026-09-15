@@ -12,11 +12,11 @@ vi.mock('@config/prisma', () => ({
 }))
 
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: {
+  Resend: class {
+    emails = {
       send: vi.fn().mockResolvedValue({ data: { id: 'mail-id' }, error: null }),
-    },
-  })),
+    }
+  },
 }))
 
 vi.mock('@google/generative-ai', () => ({

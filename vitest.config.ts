@@ -28,6 +28,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // Os testes de rota inicializam o Fastify e podem executar hooks assíncronos.
+    hookTimeout: 30_000,
     env: TEST_ENV,
     setupFiles: ['./tests/setup.ts'],
     include: [

@@ -1,4 +1,5 @@
 import { randomBytes } from 'crypto'
+import { z } from 'zod'
 import { AppError } from '../../../shared/errors/app-error'
 import { prisma } from '@config/prisma'
 import type { IUsersRepository } from '../repositories/IUsersRepository'
@@ -16,13 +17,15 @@ interface GoogleAuthOutput {
   isNewUser: boolean
 }
 
-interface GoogleUserInfo {
-  sub: string
-  email: string
-  name: string
-  picture?: string
-  email_verified: boolean
-}
+const googleUserInfoSchema = z.object({
+  sub: z.string(),
+  email: z.string().email(),
+  name: z.string().optional(),
+  picture: z.string().url().optional(),
+  email_verified: z.boolean(),
+})
+
+type GoogleUserInfo = z.infer<typeof googleUserInfoSchema>
 
 export class GoogleAuthUseCase {
   constructor(
@@ -40,7 +43,7 @@ export class GoogleAuthUseCase {
       throw new AppError('Token do Google inválido ou expirado.', 401)
     }
 
-    const googleUser: GoogleUserInfo = await res.json()
+    const googleUser: GoogleUserInfo = googleUserInfoSchema.parse(await res.json())
 
     if (!googleUser.email || !googleUser.email_verified) {
       throw new AppError('Conta Google sem e-mail verificado.', 400)

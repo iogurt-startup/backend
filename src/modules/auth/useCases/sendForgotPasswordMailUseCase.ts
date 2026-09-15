@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { randomUUID } from 'node:crypto'
 import { env } from '../../../config/env'
 import { Errors } from '../../../core/errors'
 import type { IUsersRepository } from '../repositories/IUsersRepository'
@@ -21,19 +22,27 @@ export class SendForgotPasswordMailUseCase {
       throw Errors.serviceUnavailable('Recuperação de senha indisponível no momento.')
     }
 
-    const token = jwt.sign({ sub: user.id, purpose: 'password-reset' }, env.PASSWORD_RESET_SECRET, { expiresIn: '2h' })
-    
+    await this.passwordTokensRepository.invalidatePreviousTokens(user.id, 'RECOVERY')
+
+    // jti evita tokens idênticos (e violação do unique) em pedidos no mesmo segundo
+    const token = jwt.sign(
+      { sub: user.id, purpose: 'password-reset', jti: randomUUID() },
+      env.PASSWORD_RESET_SECRET,
+      { expiresIn: '2h' },
+    )
+
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + 2)
 
-    await this.passwordTokensRepository.create(user.id, token, expiresAt)
+    await this.passwordTokensRepository.create(user.id, token, expiresAt, 'RECOVERY')
 
-    const resetUrl = `${env.APP_URL}/reset-password?token=${token}`
+    const baseUrl = env.FRONTEND_URL.replace(/\/$/, '')
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`
 
     // TO-DO: Rever o template do email enviado
 
     await this.mailProvider.sendMail({
-      to: email,
+      to: user.email,
       subject: '[IOUGURT] Recuperação de Senha',
       html: `<p>Olá, ${user.name}! Use este link: <a href="${resetUrl}">Redefinir Senha</a></p>`,
     })
