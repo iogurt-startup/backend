@@ -11,7 +11,13 @@ describe('GET /health', () => {
   it('responde 200 com status ok', async () => {
     const response = await app.inject({ method: 'GET', url: '/health' })
     expect(response.statusCode).toBe(HTTP.OK)
-    expect(response.json()).toEqual({ status: 'ok' })
+    const body = response.json()
+    expect(body).toEqual({
+      status: 'ok',
+      uptime: expect.any(Number),
+      timestamp: expect.any(String),
+    })
+    expect(new Date(body.timestamp).toISOString()).toBe(body.timestamp)
   })
 
   it.each([
