@@ -28,6 +28,7 @@ export interface ListTutorsDTO {
   perPage?: number
 }
 
+// Todos os métodos de busca/listagem consideram apenas tutores ativos (deletedAt = null) — BE-02
 export interface ITutorsRepository {
   create(data: CreateTutorDTO): Promise<Tutor>
   findById(id: string, clinicId: string): Promise<Tutor | null>
@@ -35,4 +36,5 @@ export interface ITutorsRepository {
   findByEmail(email: string, clinicId: string): Promise<Tutor | null>
   list(params: ListTutorsDTO): Promise<{ tutors: Tutor[]; total: number }>
   update(id: string, data: UpdateTutorDTO): Promise<Tutor>
+  softDelete(id: string): Promise<void>
 }

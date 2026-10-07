@@ -101,6 +101,7 @@ model Tutor {
   insurance String?  // convênio (US05)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at") // soft delete (BE-02) — null = ativo
 
   clinic   Clinic    @relation(fields: [clinicId], references: [id])
   user     User?     @relation(fields: [userId], references: [id])
@@ -129,6 +130,7 @@ model Patient {
   clinicId     String    @map("clinic_id")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")        // soft delete (BE-02) — null = ativo
 
   clinic          Clinic           @relation(fields: [clinicId], references: [id])
   tutor           Tutor            @relation(fields: [tutorId], references: [id])

@@ -12,11 +12,15 @@ export class PrismaPatientsRepository implements IPatientsRepository {
   }
 
   async findById(id: string, clinicId: string): Promise<PatientWithTutor | null> {
-    return prisma.patient.findFirst({ where: { id, clinicId }, include: withTutor })
+    return prisma.patient.findFirst({ where: { id, clinicId, deletedAt: null }, include: withTutor })
   }
 
   async update(id: string, data: UpdatePatientDTO): Promise<Patient> {
     return prisma.patient.update({ where: { id }, data })
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await prisma.patient.update({ where: { id }, data: { deletedAt: new Date() } })
   }
 
   async list({ clinicId, search, tutorId, species, updateDate, page = 1, perPage = 20 }: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }> {
@@ -38,6 +42,7 @@ export class PrismaPatientsRepository implements IPatientsRepository {
 
     const where = {
       clinicId,
+      deletedAt: null,
       ...(tutorId && { tutorId }),
       ...(species && { species }),
       ...dateFilter,

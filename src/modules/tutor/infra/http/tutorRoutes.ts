@@ -6,6 +6,7 @@ import { getTutorController, getTutorParamsSchema } from './controllers/getTutor
 import { updateTutorController, updateTutorBodySchema } from './controllers/updateTutorController'
 import { createTutorAccountController, createTutorAccountParamsSchema, createTutorAccountBodySchema } from './controllers/createTutorAccountController'
 import { resendInviteController, resendInviteParamsSchema } from './controllers/resendInviteController'
+import { deleteTutorController } from './controllers/deleteTutorController'
 
 export const tutorRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', verifyJwt)
@@ -65,4 +66,13 @@ export const tutorRoutes: FastifyPluginAsyncZod = async (app) => {
       params: resendInviteParamsSchema,
     },
   }, resendInviteController)
+
+  app.delete('/:id', {
+    schema: {
+      tags: ['Tutors'],
+      summary: 'Excluir tutor logicamente (Soft Delete)',
+      security: [{ bearerAuth: [] }],
+      params: getTutorParamsSchema,
+    },
+  }, deleteTutorController)
 }

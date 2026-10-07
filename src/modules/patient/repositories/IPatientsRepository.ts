@@ -42,9 +42,11 @@ export interface ListPatientsDTO {
   perPage?: number
 }
 
+// Todos os métodos de busca/listagem consideram apenas pacientes ativos (deletedAt = null) — BE-02
 export interface IPatientsRepository {
   create(data: CreatePatientDTO): Promise<Patient>
   findById(id: string, clinicId: string): Promise<PatientWithTutor | null>
   update(id: string, data: UpdatePatientDTO): Promise<Patient>
   list(params: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }>
+  softDelete(id: string): Promise<void>
 }

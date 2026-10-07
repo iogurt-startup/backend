@@ -8,20 +8,23 @@ export class PrismaTutorsRepository implements ITutorsRepository {
   }
 
   async findById(id: string, clinicId: string): Promise<Tutor | null> {
-    return prisma.tutor.findFirst({ where: { id, clinicId } })
+    return prisma.tutor.findFirst({ where: { id, clinicId, deletedAt: null } })
   }
 
+  // findFirst (e não findUnique) para permitir o filtro deletedAt: null — BE-02
   async findByCpf(cpf: string, clinicId: string): Promise<Tutor | null> {
-    return prisma.tutor.findUnique({ where: { cpf_clinicId: { cpf, clinicId } } })
+    return prisma.tutor.findFirst({ where: { cpf, clinicId, deletedAt: null } })
   }
 
+  // findFirst (e não findUnique) para permitir o filtro deletedAt: null — BE-02
   async findByEmail(email: string, clinicId: string): Promise<Tutor | null> {
-    return prisma.tutor.findUnique({ where: { email_clinicId: { email, clinicId } } })
+    return prisma.tutor.findFirst({ where: { email, clinicId, deletedAt: null } })
   }
 
   async list({ clinicId, search, page = 1, perPage = 20 }: ListTutorsDTO): Promise<{ tutors: Tutor[]; total: number }> {
     const where = {
       clinicId,
+      deletedAt: null,
       ...(search && { fullName: { contains: search, mode: 'insensitive' as const } }),
     }
 
@@ -35,5 +38,9 @@ export class PrismaTutorsRepository implements ITutorsRepository {
 
   async update(id: string, data: UpdateTutorDTO): Promise<Tutor> {
     return prisma.tutor.update({ where: { id }, data })
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await prisma.tutor.update({ where: { id }, data: { deletedAt: new Date() } })
   }
 }

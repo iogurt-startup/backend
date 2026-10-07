@@ -10,6 +10,11 @@ import type {
 export class InMemoryTutorsRepository implements ITutorsRepository {
   public items: Tutor[] = []
 
+  // Espelha o filtro `deletedAt: null` do repositório Prisma (BE-02)
+  private get active(): Tutor[] {
+    return this.items.filter(t => t.deletedAt === null)
+  }
+
   async create(data: CreateTutorDTO): Promise<Tutor> {
     const tutor: Tutor = {
       id: randomUUID(),
@@ -23,25 +28,26 @@ export class InMemoryTutorsRepository implements ITutorsRepository {
       insurance: data.insurance ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
+      deletedAt: null,
     }
     this.items.push(tutor)
     return tutor
   }
 
   async findById(id: string, clinicId: string): Promise<Tutor | null> {
-    return this.items.find(t => t.id === id && t.clinicId === clinicId) ?? null
+    return this.active.find(t => t.id === id && t.clinicId === clinicId) ?? null
   }
 
   async findByCpf(cpf: string, clinicId: string): Promise<Tutor | null> {
-    return this.items.find(t => t.cpf === cpf && t.clinicId === clinicId) ?? null
+    return this.active.find(t => t.cpf === cpf && t.clinicId === clinicId) ?? null
   }
 
   async findByEmail(email: string, clinicId: string): Promise<Tutor | null> {
-    return this.items.find(t => t.email === email && t.clinicId === clinicId) ?? null
+    return this.active.find(t => t.email === email && t.clinicId === clinicId) ?? null
   }
 
   async list({ clinicId, search, page = 1, perPage = 20 }: ListTutorsDTO): Promise<{ tutors: Tutor[]; total: number }> {
-    let tutors = this.items.filter(t => t.clinicId === clinicId)
+    let tutors = this.active.filter(t => t.clinicId === clinicId)
     if (search) {
       tutors = tutors.filter(t => t.fullName.toLowerCase().includes(search.toLowerCase()))
     }
@@ -54,5 +60,11 @@ export class InMemoryTutorsRepository implements ITutorsRepository {
     const index = this.items.findIndex(t => t.id === id)
     this.items[index] = { ...this.items[index], ...data, updatedAt: new Date() }
     return this.items[index]
+  }
+
+  async softDelete(id: string): Promise<void> {
+    const index = this.items.findIndex(t => t.id === id)
+    if (index === -1) return
+    this.items[index] = { ...this.items[index], deletedAt: new Date(), updatedAt: new Date() }
   }
 }

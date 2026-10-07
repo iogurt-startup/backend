@@ -4,6 +4,7 @@ import { createPatientController, createPatientBodySchema } from './controllers/
 import { listPatientsController, listPatientsQuerySchema } from './controllers/listPatientsController'
 import { getPatientController, getPatientParamsSchema } from './controllers/getPatientController'
 import { updatePatientController, updatePatientBodySchema } from './controllers/updatePatientController'
+import { deletePatientController } from './controllers/deletePatientController'
 
 export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', verifyJwt)
@@ -44,4 +45,13 @@ export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
       body: updatePatientBodySchema,
     },
   }, updatePatientController)
+
+  app.delete('/:id', {
+    schema: {
+      tags: ['Patients'],
+      summary: 'Excluir paciente logicamente (Soft Delete)',
+      security: [{ bearerAuth: [] }],
+      params: getPatientParamsSchema,
+    },
+  }, deletePatientController)
 }
