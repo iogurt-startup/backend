@@ -5,5 +5,5 @@ export interface SendMailData {
 }
 
 export interface IMailProvider {
-  sendMail(data: SendMailData): Promise<void>
+  sendMail(data: SendMailData): Promise<boolean | void>
 }

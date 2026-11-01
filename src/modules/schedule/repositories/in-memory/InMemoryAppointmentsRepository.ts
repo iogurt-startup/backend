@@ -5,14 +5,33 @@ import type {
   IAppointmentsRepository,
   CreateAppointmentDTO,
   AppointmentWithRelations,
+  AppointmentReminderCandidate,
 } from '../IAppointmentsRepository'
 import { DEFAULT_APPOINTMENT_DURATION_MS } from '../IAppointmentsRepository'
 
+export type InMemoryAppointmentItem = AppointmentWithRelations & {
+  patient: AppointmentWithRelations['patient'] & {
+    deletedAt?: Date | null
+    tutor?: {
+      id: string
+      fullName: string
+      email: string | null
+      deletedAt?: Date | null
+    }
+    clinic?: {
+      id: string
+      name: string
+      phone: string | null
+      address: string | null
+    }
+  }
+}
+
 export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
-  public items: AppointmentWithRelations[] = []
+  public items: InMemoryAppointmentItem[] = []
 
   async create(data: CreateAppointmentDTO): Promise<Appointment> {
-    const appointment: AppointmentWithRelations = {
+    const appointment: InMemoryAppointmentItem = {
       id: randomUUID(),
       patientId: data.patientId,
       vetId: data.vetId ?? null,
@@ -22,6 +41,7 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
       status: (data as { status?: AppointmentStatus }).status ?? AppointmentStatus.SCHEDULED,
       observation: data.observation ?? null,
       cancelReason: null,
+      reminderSentAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       patient: {
@@ -30,6 +50,19 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
         species: 'Cachorro',
         clinicId: 'clinic-1',
         photoUrl: null,
+        deletedAt: null,
+        tutor: {
+          id: 'tutor-1',
+          fullName: 'Tutor Padrão',
+          email: 'tutor@iougurt.com',
+          deletedAt: null,
+        },
+        clinic: {
+          id: 'clinic-1',
+          name: 'Clínica IOUGURT',
+          phone: '11999999999',
+          address: 'Rua das Flores, 123',
+        },
       },
       vet: data.vetId ? { id: data.vetId, name: 'Veterinário' } : null,
     }
@@ -75,6 +108,7 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
       )
     })
   }
+
   async listByStatus(status: AppointmentStatus, clinicId: string, date?: Date): Promise<AppointmentWithRelations[]> {
     const dateStr = date?.toISOString().slice(0, 10)
     return this.items
@@ -115,9 +149,55 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
   async reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment> {
     const index = this.items.findIndex(a => a.id === id)
     this.items[index].dateTime = newDateTime
+    this.items[index].reminderSentAt = null
     if (newEndDateTime !== undefined) {
       this.items[index].endDateTime = newEndDateTime
     }
+    this.items[index].updatedAt = new Date()
+    return this.items[index]
+  }
+
+  async findPendingReminders(windowStart: Date, windowEnd: Date): Promise<AppointmentReminderCandidate[]> {
+    return this.items
+      .filter(a => {
+        const tutor = a.patient.tutor
+        return (
+          a.status === AppointmentStatus.SCHEDULED &&
+          a.reminderSentAt === null &&
+          a.dateTime >= windowStart &&
+          a.dateTime <= windowEnd &&
+          !a.patient.deletedAt &&
+          tutor &&
+          !tutor.deletedAt &&
+          Boolean(tutor.email)
+        )
+      })
+      .map(a => ({
+        ...a,
+        patient: {
+          id: a.patient.id,
+          name: a.patient.name,
+          species: a.patient.species,
+          clinicId: a.patient.clinicId,
+          tutor: {
+            id: a.patient.tutor!.id,
+            fullName: a.patient.tutor!.fullName,
+            email: a.patient.tutor!.email,
+          },
+          clinic: a.patient.clinic ?? {
+            id: a.patient.clinicId,
+            name: 'Clínica IOUGURT',
+            phone: null,
+            address: null,
+          },
+        },
+      }))
+      .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+  }
+
+  async markReminderSent(id: string, sentAt: Date): Promise<Appointment> {
+    const index = this.items.findIndex(a => a.id === id)
+    this.items[index].reminderSentAt = sentAt
     this.items[index].updatedAt = new Date()
     return this.items[index]
   }

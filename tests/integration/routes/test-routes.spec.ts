@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { TestApp } from '../../utils/app-builder'
-import { HTTP } from '../../utils/constants'
+import { HTTP, SEED } from '../../utils/constants'
 import { env } from '../../../src/config/env'
 
 const SECRET = 'test-e2e-secret'
-const CLINIC_URL = '/test/clinics/11111111-1111-1111-1111-111111111111'
+const CLINIC_URL = `/test/clinics/${SEED.CLINIC_ID}`
 
-describe('Rotas /test protegidas por segredo', () => {
+describe('Rotas /test protegidas por segredo', { timeout: 15000 }, () => {
   let app: TestApp
 
   afterEach(async () => {

@@ -27,10 +27,10 @@ export class ResendMailProvider implements IMailProvider {
     throw Errors.serviceUnavailable('Serviço de e-mail indisponível no momento.')
   }
 
-  async sendMail({ to, subject, html }: SendMailData): Promise<void> {
+  async sendMail({ to, subject, html }: SendMailData): Promise<boolean> {
     if (!this.isConfigured()) {
       this.logger?.warn({ to }, 'Envio de e-mail cancelado: Resend não está configurado.')
-      return
+      return false
     }
 
     try {
@@ -43,12 +43,14 @@ export class ResendMailProvider implements IMailProvider {
 
       if (response.error) {
         this.logger?.error({ error: response.error, to }, 'Falha ao enviar e-mail via Resend')
-        return
+        return false
       }
 
       this.logger?.info({ emailId: response.data?.id, to }, 'E-mail enviado com sucesso')
+      return true
     } catch (error) {
       this.logger?.error({ error, to }, 'Erro inesperado na comunicação com o serviço Resend')
+      return false
     }
   }
 }

@@ -42,6 +42,7 @@ describe("PostgreSQL integration tests", () => {
     const clinicA = await prisma.clinic.create({
       data: {
         name: "Clínica A",
+        code: "CLINICA-001",
         cnpj: "11444777000161",
         address: "Rua A, 100",
         phone: "11999990000",
@@ -51,6 +52,7 @@ describe("PostgreSQL integration tests", () => {
     const clinicB = await prisma.clinic.create({
       data: {
         name: "Clínica B",
+        code: "CLINICB-002",
         cnpj: "85424588000104",
         address: "Rua B, 200",
         phone: "11999990001",

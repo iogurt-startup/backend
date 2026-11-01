@@ -12,13 +12,22 @@ export function errorHandler(
 
   // Zod validation errors via Fastify hook
   if ('validation' in error && Array.isArray((error as any).validation)) {
-    const issues = (error as any).validation
+    const rawIssues = (error as any).validation
+    const issues: Record<string, string[]> = {}
+    for (const i of rawIssues) {
+      const field =
+        i.params?.issue?.path?.join('.') ||
+        (typeof i.instancePath === 'string' ? i.instancePath.replace(/^\//, '').replace(/\//g, '.') : '') ||
+        '_root'
+      if (!issues[field]) issues[field] = []
+      issues[field].push(i.message)
+    }
     console.error(`[ErrorHandler] Zod Validation Error issues:`, JSON.stringify(issues, null, 2))
     return reply.status(422).send({
       statusCode: 422,
       error: 'Validation Error',
-      issues: issues,
-      message: 'Erros de validação: ' + issues.map((i: any) => `${i.params?.issue?.path?.join('.') || i.instancePath}: ${i.message}`).join(', ')
+      issues,
+      message: 'Erros de validação: ' + rawIssues.map((i: any) => `${i.params?.issue?.path?.join('.') || i.instancePath}: ${i.message}`).join(', ')
     })
   }
 

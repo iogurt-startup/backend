@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 import { AppError } from '../../../shared/errors/app-error'
 import { prisma } from '@config/prisma'
+import { generateClinicCode } from '../../../shared/utils/generateClinicCode'
 import type { IUsersRepository } from '../repositories/IUsersRepository'
 import type { IRefreshTokensRepository } from '../repositories/IRefreshTokensRepository'
 
@@ -52,8 +53,12 @@ export class GoogleAuthUseCase {
 
     if (!user) {
       // Novo usuário Google: cria uma clínica automaticamente com nome provisório
+      const clinicName = `Clínica de ${googleUser.name ?? googleUser.email.split('@')[0]}`
       const clinic = await prisma.clinic.create({
-        data: { name: `Clínica de ${googleUser.name ?? googleUser.email.split('@')[0]}` },
+        data: {
+          name: clinicName,
+          code: generateClinicCode(clinicName),
+        },
       })
       const dummyPassword = randomBytes(32).toString('hex')
       user = await this.usersRepository.create({

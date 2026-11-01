@@ -3,6 +3,7 @@ import type {
   IAppointmentsRepository,
   CreateAppointmentDTO,
   AppointmentWithRelations,
+  AppointmentReminderCandidate,
 } from '../../repositories/IAppointmentsRepository'
 import { DEFAULT_APPOINTMENT_DURATION_MS } from '../../repositories/IAppointmentsRepository'
 import { type Appointment, AppointmentStatus } from '@prisma/client'
@@ -119,8 +120,68 @@ export class PrismaAppointmentsRepository implements IAppointmentsRepository {
       where: { id },
       data: {
         dateTime: newDateTime,
+        reminderSentAt: null,
         ...(newEndDateTime !== undefined && { endDateTime: newEndDateTime }),
       },
+    })
+  }
+
+  async findPendingReminders(windowStart: Date, windowEnd: Date): Promise<AppointmentReminderCandidate[]> {
+    return prisma.appointment.findMany({
+      where: {
+        status: AppointmentStatus.SCHEDULED,
+        reminderSentAt: null,
+        dateTime: {
+          gte: windowStart,
+          lte: windowEnd,
+        },
+        patient: {
+          deletedAt: null,
+          tutor: {
+            deletedAt: null,
+            email: { not: null },
+          },
+        },
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            clinicId: true,
+            tutor: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+            clinic: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                address: true,
+              },
+            },
+          },
+        },
+        vet: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { dateTime: 'asc' },
+    })
+  }
+
+  async markReminderSent(id: string, sentAt: Date): Promise<Appointment> {
+    return prisma.appointment.update({
+      where: { id },
+      data: { reminderSentAt: sentAt },
     })
   }
 }

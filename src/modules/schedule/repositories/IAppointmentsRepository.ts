@@ -16,6 +16,23 @@ export type AppointmentWithRelations = Appointment & {
   vet: Pick<User, 'id' | 'name'> | null
 }
 
+export type AppointmentReminderCandidate = Appointment & {
+  patient: Pick<Patient, 'id' | 'name' | 'species' | 'clinicId'> & {
+    tutor: {
+      id: string
+      fullName: string
+      email: string | null
+    }
+    clinic: {
+      id: string
+      name: string
+      phone: string | null
+      address: string | null
+    }
+  }
+  vet: Pick<User, 'id' | 'name'> | null
+}
+
 export interface CreateAppointmentDTO {
   patientId: string
   vetId?: string
@@ -36,4 +53,6 @@ export interface IAppointmentsRepository {
   reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment>
   approve(id: string, vetId: string, endDateTime: Date): Promise<AppointmentWithRelations>
   reject(id: string, reason: string): Promise<AppointmentWithRelations>
+  findPendingReminders(windowStart: Date, windowEnd: Date): Promise<AppointmentReminderCandidate[]>
+  markReminderSent(id: string, sentAt: Date): Promise<Appointment>
 }

@@ -1,20 +1,39 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import '@fastify/rate-limit'
 import { z } from 'zod'
 import { prisma } from '@config/prisma'
 import { verifyJwt } from '@shared/middleware/verify-jwt'
 import { verifyRole } from '@shared/middleware/verify-role'
 import { isValidCnpj, onlyDigits } from '@shared/documents'
 import { Errors } from '../../../../core/errors'
+import { GetClinicByCodeUseCase } from '../../useCases/getClinicByCodeUseCase'
 
 const clinicSelect = {
   id: true,
   name: true,
+  code: true,
   cnpj: true,
   address: true,
   phone: true,
   createdAt: true,
   updatedAt: true,
 } as const
+
+export const getClinicByCodeParamsSchema = z.object({
+  code: z.string().trim().min(3, 'Código deve ter no mínimo 3 caracteres').max(20, 'Código inválido'),
+})
+
+// Rota pública: limita tentativas por IP para impedir a descoberta de siglas por força bruta.
+// O limite comporta a validação em tempo real do frontend (debounce enquanto o usuário digita).
+export const clinicCodeRateLimit = { max: 30, timeWindow: '1 minute' }
+
+export const getClinicByCodeResponseSchema = z.object({
+  clinic: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    code: z.string(),
+  }),
+})
 
 const updateClinicBodySchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
@@ -33,9 +52,27 @@ const updateClinicBodySchema = z.object({
 })
 
 export const clinicRoutes: FastifyPluginAsyncZod = async (app) => {
-  app.addHook('onRequest', verifyJwt)
+  // ── Rota Pública de Validação de Código ──────────────
+  app.get('/code/:code', {
+    config: { rateLimit: clinicCodeRateLimit },
+    schema: {
+      tags: ['Clinic'],
+      summary: 'Valida se uma clínica existe e possui um Dono (OWNER) ativo através da sigla',
+      params: getClinicByCodeParamsSchema,
+      response: {
+        200: getClinicByCodeResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const { code } = request.params as z.infer<typeof getClinicByCodeParamsSchema>
+    const useCase = new GetClinicByCodeUseCase()
+    const clinic = await useCase.execute(code)
+    return reply.status(200).send({ clinic })
+  })
 
+  // ── Rotas Protegidas (Exigem JWT) ─────────────────────
   app.get('/me', {
+    preHandler: [verifyJwt],
     schema: {
       tags: ['Clinic'],
       summary: 'Retorna a clínica do usuário autenticado',
@@ -52,7 +89,7 @@ export const clinicRoutes: FastifyPluginAsyncZod = async (app) => {
   })
 
   app.patch('/me', {
-    preHandler: [verifyRole('OWNER')],
+    preHandler: [verifyJwt, verifyRole('OWNER')],
     schema: {
       tags: ['Clinic'],
       summary: 'Atualiza dados cadastrais da clínica (apenas OWNER)',

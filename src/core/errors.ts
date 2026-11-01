@@ -18,4 +18,7 @@ export const Errors = {
 
   serviceUnavailable: (message = 'Serviço indisponível') =>
     new AppError(message, 503),
+
+  internal: (message = 'Erro interno do servidor') =>
+    new AppError(message, 500),
 }

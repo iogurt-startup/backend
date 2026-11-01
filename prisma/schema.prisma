@@ -12,6 +12,7 @@ datasource db {
 model Clinic {
   id        String   @id @default(uuid())
   name      String
+  code      String   @unique
   cnpj      String?  // documento oficial (US10 — cabeçalho da receita)
   address   String?  // endereço completo (US10)
   phone     String?  // telefone de contato (US10)
@@ -154,6 +155,7 @@ model Appointment {
   status       AppointmentStatus   @default(SCHEDULED)
   observation  String?
   cancelReason String?             @map("cancel_reason") // US08
+  reminderSentAt DateTime?         @map("reminder_sent_at")
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
 
@@ -162,6 +164,7 @@ model Appointment {
   clinicalRecord ClinicalRecord?
 
   @@index([vetId, dateTime])
+  @@index([status, dateTime, reminderSentAt])
   @@map("appointments")
 }
 

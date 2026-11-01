@@ -36,6 +36,7 @@ describe("Primeiro acesso do tutor (PostgreSQL real)", () => {
     const clinic = await prisma.clinic.create({
       data: {
         name: "Clínica Primeiro Acesso",
+        code: "PRIMEIRO-001",
         cnpj: "11444777000161",
         address: "Rua Primeiro Acesso, 1",
         phone: "11999990010",
