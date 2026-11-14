@@ -25,6 +25,9 @@ function escapeHtml(value: string): string {
 }
 
 const CATEGORY_LABELS: Record<AppointmentCategory, string> = {
+  GENERAL: 'Consulta Geral',
+  RETURN: 'Retorno',
+  SURGICAL_EVALUATION: 'Avaliacao Cirurgica',
   VACCINATION: 'Vacinação',
   OBSERVATION: 'Consulta / Observação',
   EXAM: 'Exame',

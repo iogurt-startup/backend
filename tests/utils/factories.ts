@@ -68,6 +68,7 @@ export class Factory {
       email: 'tutor.contato@iougurt.com',
       address: 'Rua Tutor, 200',
       insurance: null,
+      alternateContacts: null,
       createdAt: NOW,
       updatedAt: NOW,
       ...overrides,
@@ -80,7 +81,9 @@ export class Factory {
       name: 'Rex',
       photoUrl: null,
       birthDate: new Date('2020-05-10T00:00:00.000Z'),
-      sex: 'Masculino',
+      sex: 'MALE',
+      reproductiveCondition: 'NEUTERED',
+      coatDescription: 'Caramelo, pelo curto',
       weightKg: new Decimal('12.50'),
       observations: null,
       microchip: null,
@@ -91,6 +94,7 @@ export class Factory {
       clinicId: SEED.CLINIC_ID,
       createdAt: NOW,
       updatedAt: NOW,
+      deletedAt: null,
       ...overrides,
     }
   }
@@ -125,6 +129,7 @@ export class Factory {
       prescriptions: null,
       breathingNotes: null,
       routineGuidance: null,
+      observations: null,
       aiSummary: null,
       finalized: false,
       createdAt: NOW,
@@ -154,7 +159,68 @@ export class Factory {
       fileName: 'hemograma.pdf',
       fileUrl: '/uploads/hemograma.pdf',
       fileType: 'pdf',
+      clinicalType: null,
       uploadedAt: NOW,
+      ...overrides,
+    }
+  }
+
+  static patientPhoto(overrides: Overrides<Record<string, unknown>> = {}) {
+    return {
+      id: 'photo-1',
+      patientId: SEED.PATIENT_ID,
+      photoUrl: '/uploads/foto.png',
+      description: 'Lesão na pata direita',
+      takenAt: NOW,
+      createdAt: NOW,
+      ...overrides,
+    }
+  }
+
+  static chronicCondition(overrides: Overrides<Record<string, unknown>> = {}) {
+    return {
+      id: SEED.CHRONIC_CONDITION_ID,
+      patientId: SEED.PATIENT_ID,
+      name: 'Diabetes mellitus',
+      diagnosedAt: NOW,
+      status: 'ACTIVE',
+      observations: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+      ...overrides,
+    }
+  }
+
+  static hospitalization(overrides: Overrides<Record<string, unknown>> = {}) {
+    return {
+      id: SEED.HOSPITALIZATION_ID,
+      clinicId: SEED.CLINIC_ID,
+      patientId: SEED.PATIENT_ID,
+      admittedByVetId: SEED.OWNER_ID,
+      bedIdentifier: 'Baia 03',
+      reason: 'Pós-operatório de castração',
+      status: 'ADMITTED',
+      admittedAt: NOW,
+      dischargedAt: null,
+      dischargeNotes: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+      ...overrides,
+    }
+  }
+
+  static hospitalizationEvolution(overrides: Overrides<Record<string, unknown>> = {}) {
+    return {
+      id: SEED.HOSPITALIZATION_EVOLUTION_ID,
+      hospitalizationId: SEED.HOSPITALIZATION_ID,
+      recordedByVetId: SEED.OWNER_ID,
+      temperature: 38.5,
+      heartRate: 90,
+      respiratoryRate: 24,
+      mucousMembranes: 'Normocoradas',
+      notes: 'Aceitou ração, hidratação mantida',
+      recordedAt: NOW,
+      ...overrides,
     }
   }
 

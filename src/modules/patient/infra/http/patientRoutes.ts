@@ -1,5 +1,6 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { verifyJwt } from '@shared/middleware/verify-jwt'
+import { verifyRole } from '@shared/middleware/verify-role'
 import { createPatientController, createPatientBodySchema } from './controllers/createPatientController'
 import { listPatientsController, listPatientsQuerySchema } from './controllers/listPatientsController'
 import { getPatientController, getPatientParamsSchema } from './controllers/getPatientController'
@@ -8,6 +9,8 @@ import { deletePatientController } from './controllers/deletePatientController'
 
 export const patientRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', verifyJwt)
+  // Tutores acessam seus dados só pelo /portal; estas rotas expõem a clínica toda.
+  app.addHook('preHandler', verifyRole('OWNER', 'VET'))
 
   app.post('/', {
     schema: {

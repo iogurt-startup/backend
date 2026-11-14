@@ -2,6 +2,7 @@ import { AppError } from '../../../shared/errors/app-error'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { prisma } from '../../../config/prisma'
 import { env } from '../../../config/env'
+import { clinicalObservationsToPlainText } from '../../../shared/clinical/routine-guidance-meta'
 
 interface GenerateAISummaryRequest {
   recordId: string
@@ -58,7 +59,7 @@ Exame físico/respiração: ${record.breathingNotes ?? 'Não informado'}
 Diagnóstico: ${record.diagnosis ?? 'Não informado'}
 Diagnóstico pendente: ${record.pendingDiagnosis ?? 'Nenhum'}
 Prescrições: ${record.prescriptions ?? 'Nenhuma'}
-Orientações de rotina: ${record.routineGuidance ?? 'Nenhuma'}
+Orientações de rotina: ${clinicalObservationsToPlainText(record) || 'Nenhuma'}
 ${record.weightKg ? `Peso registrado na consulta: ${record.weightKg} kg` : ''}
 
 Gere o resumo agora:

@@ -3,12 +3,12 @@ import { z } from 'zod'
 import { makeListPatientsUseCase } from '../../../useCases/factories/makeListPatientsUseCase'
 
 export const listPatientsQuerySchema = z.object({
-  search: z.string().optional(),
+  search: z.string().trim().min(2).max(100).optional(),
   tutorId: z.string().uuid().optional(),
   species: z.string().optional(),
   updateDate: z.string().optional(),
-  page: z.coerce.number().default(1),
-  perPage: z.coerce.number().default(20),
+  page: z.coerce.number().int().positive().default(1),
+  perPage: z.coerce.number().int().positive().max(100).default(20),
 })
 
 export async function listPatientsController(request: FastifyRequest, reply: FastifyReply) {

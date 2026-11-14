@@ -15,7 +15,8 @@ describe('DeletePatientUseCase', () => {
   it('deve realizar exclusão lógica de um paciente', async () => {
     const patient = await patientsRepository.create({
       name: 'Rex',
-      species: 'Canina',
+      species: 'CANINE',
+      sex: 'MALE',
       tutorId: 'tutor-1',
       clinicId: 'clinic-1',
     })
@@ -37,7 +38,8 @@ describe('DeletePatientUseCase', () => {
   it('não deve deletar paciente de outra clínica', async () => {
     const patient = await patientsRepository.create({
       name: 'Rex',
-      species: 'Canina',
+      species: 'CANINE',
+      sex: 'MALE',
       tutorId: 'tutor-1',
       clinicId: 'clinic-1',
     })

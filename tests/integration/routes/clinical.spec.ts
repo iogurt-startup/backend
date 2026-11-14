@@ -203,6 +203,27 @@ describe('Clinical record routes', () => {
       expect(response.statusCode).toBe(HTTP.OK)
     })
 
+    // CLI-01 — o schema precisa aceitar o campo novo, senão o Zod derruba a
+    // requisição com 400 e a observação nunca chega no banco.
+    it('aceita observações do atendimento no corpo da requisição', async () => {
+      prismaMock.clinicalRecord.findFirst.mockResolvedValue(Factory.clinicalRecord() as never)
+      prismaMock.clinicalRecord.update.mockResolvedValue(
+        Factory.clinicalRecord({ observations: 'Tosse noturna' }) as never,
+      )
+
+      const response = await app.injectAuth({
+        method: 'PUT',
+        url: `/clinical-records/${SEED.RECORD_ID}`,
+        payload: { observations: 'Tosse noturna' },
+      })
+
+      expect(response.statusCode).toBe(HTTP.OK)
+      expect(response.json().observations).toBe('Tosse noturna')
+      expect(prismaMock.clinicalRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ observations: 'Tosse noturna' }) }),
+      )
+    })
+
     it('retorna 404 quando prontuário não existe', async () => {
       prismaMock.clinicalRecord.findFirst.mockResolvedValue(null)
       const response = await app.injectAuth({

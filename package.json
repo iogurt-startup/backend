@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:routes": "vitest run tests/integration/routes",
     "test:real-db": "node scripts/test-real-db.mjs",
+    "smoke:prod": "node scripts/smoke-prod-api.mjs",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:generate": "prisma generate"
@@ -37,6 +38,7 @@
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.3",
     "pdfkit": "^0.18.0",
+    "prisma": "^5.22.0",
     "resend": "^6.11.0",
     "zod": "^4.6.7"
   },
@@ -45,7 +47,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.9.0",
     "@vitest/coverage-v8": "^4.1.11",
-    "prisma": "^5.22.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",

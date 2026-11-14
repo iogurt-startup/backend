@@ -11,6 +11,16 @@ const VALID_TUTOR_BODY = {
   email: 'tutor.contato@iougurt.com',
 }
 
+const ALTERNATE_CONTACTS = [
+  { name: 'João Silva', phone: '(61) 99999-1111', relationship: 'Cônjuge', hasWhatsApp: true },
+  { name: 'Ana Silva', phone: '61988882222', relationship: 'Irmã', hasWhatsApp: false },
+]
+
+const NORMALIZED_ALTERNATE_CONTACTS = [
+  { ...ALTERNATE_CONTACTS[0], phone: '61999991111' },
+  ALTERNATE_CONTACTS[1],
+]
+
 describe('Tutor routes', () => {
   let app: TestApp
 
@@ -48,6 +58,53 @@ describe('Tutor routes', () => {
       { name: 'email inválido', body: { ...VALID_TUTOR_BODY, email: 'nope' } },
     ])('rejeita payload inválido () com 422', async ({ body }) => {
       const response = await app.injectAuth({ method: 'POST', url: '/tutors', payload: body })
+      expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
+    })
+
+    it('cria tutor com até dois contatos alternativos e normaliza os telefones', async () => {
+      prismaMock.tutor.findFirst.mockResolvedValue(null)
+      prismaMock.tutor.create.mockResolvedValue(
+        Factory.tutor({ alternateContacts: NORMALIZED_ALTERNATE_CONTACTS }) as never,
+      )
+
+      const response = await app.injectAuth({
+        method: 'POST',
+        url: '/tutors',
+        payload: { ...VALID_TUTOR_BODY, alternateContacts: ALTERNATE_CONTACTS },
+      })
+
+      expect(response.statusCode).toBe(HTTP.CREATED)
+      expect(prismaMock.tutor.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          alternateContacts: NORMALIZED_ALTERNATE_CONTACTS,
+        }),
+      })
+      expect(response.json().tutor.alternateContacts).toEqual(NORMALIZED_ALTERNATE_CONTACTS)
+    })
+
+    it('rejeita mais de dois contatos alternativos', async () => {
+      const response = await app.injectAuth({
+        method: 'POST',
+        url: '/tutors',
+        payload: {
+          ...VALID_TUTOR_BODY,
+          alternateContacts: [...ALTERNATE_CONTACTS, ALTERNATE_CONTACTS[0]],
+        },
+      })
+
+      expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
+    })
+
+    it('rejeita contato alternativo incompleto ou com telefone inválido', async () => {
+      const response = await app.injectAuth({
+        method: 'POST',
+        url: '/tutors',
+        payload: {
+          ...VALID_TUTOR_BODY,
+          alternateContacts: [{ name: 'J', phone: '123', relationship: '', hasWhatsApp: true }],
+        },
+      })
+
       expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
     })
   })
@@ -90,13 +147,16 @@ describe('Tutor routes', () => {
     })
 
     it('retorna tutor encontrado', async () => {
-      prismaMock.tutor.findFirst.mockResolvedValue(Factory.tutor() as never)
+      prismaMock.tutor.findFirst.mockResolvedValue(
+        Factory.tutor({ alternateContacts: NORMALIZED_ALTERNATE_CONTACTS }) as never,
+      )
       const response = await app.injectAuth({
         method: 'GET',
         url: '/tutors/' + SEED.TUTOR_ID,
       })
       expect(response.statusCode).toBe(HTTP.OK)
       expect(response.json().tutor.id).toBe(SEED.TUTOR_ID)
+      expect(response.json().tutor.alternateContacts).toEqual(NORMALIZED_ALTERNATE_CONTACTS)
     })
 
     it('rejeita id não-UUID com 422', async () => {
@@ -120,6 +180,26 @@ describe('Tutor routes', () => {
 
       expect(response.statusCode).toBe(HTTP.OK)
       expect(response.json().tutor.fullName).toBe('Atualizado')
+    })
+
+    it('atualiza e permite limpar os contatos alternativos', async () => {
+      prismaMock.tutor.findFirst.mockResolvedValue(Factory.tutor() as never)
+      prismaMock.tutor.update.mockResolvedValue(
+        Factory.tutor({ alternateContacts: [] }) as never,
+      )
+
+      const response = await app.injectAuth({
+        method: 'PUT',
+        url: '/tutors/' + SEED.TUTOR_ID,
+        payload: { alternateContacts: [] },
+      })
+
+      expect(response.statusCode).toBe(HTTP.OK)
+      expect(prismaMock.tutor.update).toHaveBeenCalledWith({
+        where: { id: SEED.TUTOR_ID },
+        data: { alternateContacts: [] },
+      })
+      expect(response.json().tutor.alternateContacts).toEqual([])
     })
   })
 

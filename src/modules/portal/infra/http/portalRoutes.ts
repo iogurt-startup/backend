@@ -13,7 +13,7 @@ const patientHistoryParamsSchema = z.object({
 
 const requestAppointmentBodySchema = z.object({
   patientId: z.string().uuid(),
-  category: z.enum(['VACCINATION', 'OBSERVATION', 'EXAM', 'SURGICAL']),
+  category: z.enum(['GENERAL', 'RETURN', 'SURGICAL_EVALUATION', 'VACCINATION', 'OBSERVATION', 'EXAM', 'SURGICAL']),
   dateTime: z.coerce.date(),
   observation: z.string().optional(),
 })

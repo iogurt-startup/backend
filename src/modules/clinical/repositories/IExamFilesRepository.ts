@@ -8,10 +8,11 @@ export interface CreateExamFileDTO {
   fileName: string
   fileUrl: string
   fileType: string
+  clinicalType?: string | null
 }
 
 export interface IExamFilesRepository {
   create(data: CreateExamFileDTO): Promise<ExamFile>
-  listByPatient(patientId: string): Promise<ExamFile[]>
+  listByPatient(patientId: string, clinicalType?: string): Promise<ExamFile[]>
   delete(id: string): Promise<void>
 }

@@ -164,6 +164,56 @@ describe('Portal Tutor Use Cases', () => {
       )
     })
 
+    it('deve incluir apenas id e nome do veterinário, sem dados sensíveis', async () => {
+      const sut = new ListTutorAppointmentsUseCase()
+      prismaMock.user.findUnique.mockResolvedValue(tutorUserWithPatients() as never)
+      prismaMock.appointment.findMany.mockResolvedValue([] as never)
+
+      await sut.execute({ userId: SEED.TUTOR_USER_ID })
+
+      expect(prismaMock.appointment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            vet: { select: { id: true, name: true } },
+          }),
+        }),
+      )
+    })
+
+    it('deve devolver o veterinário nos agendados e null nas solicitações pendentes', async () => {
+      const sut = new ListTutorAppointmentsUseCase()
+      prismaMock.user.findUnique.mockResolvedValue(tutorUserWithPatients() as never)
+      prismaMock.appointment.findMany.mockResolvedValue([
+        {
+          id: 'app-1',
+          patientId: SEED.PATIENT_ID,
+          vetId: SEED.VET_ID,
+          dateTime: new Date(),
+          category: 'OBSERVATION',
+          status: 'SCHEDULED',
+          cancelReason: null,
+          patient: { id: SEED.PATIENT_ID, name: 'Rex', species: 'Canino' },
+          vet: { id: SEED.VET_ID, name: 'Ana Souza' },
+        },
+        {
+          id: 'app-2',
+          patientId: SEED.PATIENT_ID,
+          vetId: null,
+          dateTime: new Date(),
+          category: 'VACCINATION',
+          status: 'PENDING_APPROVAL',
+          cancelReason: null,
+          patient: { id: SEED.PATIENT_ID, name: 'Rex', species: 'Canino' },
+          vet: null,
+        },
+      ] as never)
+
+      const result = await sut.execute({ userId: SEED.TUTOR_USER_ID })
+
+      expect(result.appointments[0].vet).toEqual({ id: SEED.VET_ID, name: 'Ana Souza' })
+      expect(result.appointments[1].vet).toBeNull()
+    })
+
     it('deve rejeitar com 403 se o usuário não for TUTOR', async () => {
       const sut = new ListTutorAppointmentsUseCase()
       prismaMock.user.findUnique.mockResolvedValue(Factory.owner({ role: ROLE.VET }) as never)

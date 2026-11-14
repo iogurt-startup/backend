@@ -1,5 +1,6 @@
 import { AppError } from "../../../shared/errors/app-error";
 import { prisma } from "../../../config/prisma";
+import { resolveClinicalObservations } from "../../../shared/clinical/routine-guidance-meta";
 
 interface GetTutorPatientHistoryRequest {
   userId: string;
@@ -38,7 +39,7 @@ export class GetTutorPatientHistoryUseCase {
     });
 
     // Histórico de prontuários (leitura) — sem dados de edição
-    const clinicalRecords = await prisma.clinicalRecord.findMany({
+    const storedRecords = await prisma.clinicalRecord.findMany({
       where: { patientId, finalized: true },
       orderBy: { createdAt: "desc" },
       select: {
@@ -47,11 +48,23 @@ export class GetTutorPatientHistoryUseCase {
         diagnosis: true,
         prescriptions: true,
         routineGuidance: true,
+        observations: true,
         aiSummary: true,
         weightKg: true,
         finalized: true,
         vet: { select: { name: true, crmv: true } },
       },
+    });
+
+    // CLI-01 — o tutor nunca deve ver o JSON do formato improvisado. Aqui
+    // normalizamos: observations no campo próprio, routineGuidance só texto.
+    const clinicalRecords = storedRecords.map(record => {
+      const { observations, additionalObservations } = resolveClinicalObservations(record);
+      return {
+        ...record,
+        observations: observations || null,
+        routineGuidance: additionalObservations || null,
+      };
     });
 
     // Vacinas

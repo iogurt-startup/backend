@@ -26,6 +26,7 @@ export class InMemoryTutorsRepository implements ITutorsRepository {
       email: data.email ?? null,
       address: data.address ?? null,
       insurance: data.insurance ?? null,
+      alternateContacts: data.alternateContacts ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
       deletedAt: null,

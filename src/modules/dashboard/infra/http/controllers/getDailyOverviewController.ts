@@ -8,10 +8,10 @@ export const getDailyOverviewQuerySchema = z.object({
 })
 
 export async function getDailyOverviewController(
-  request: FastifyRequest<{ Querystring: z.infer<typeof getDailyOverviewQuerySchema> }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { date, vetId } = request.query
+  const { date, vetId } = getDailyOverviewQuerySchema.parse(request.query)
   const { userId, clinicId } = request.user
 
   const targetDate = date ? new Date(date) : new Date()

@@ -7,6 +7,10 @@ import {
   getAdminAppointmentsTrendController,
   getAdminAppointmentsTrendQuerySchema,
 } from './controllers/getAdminAppointmentsTrendController'
+import {
+  getRecentActivitiesController,
+  getRecentActivitiesQuerySchema,
+} from './controllers/getRecentActivitiesController'
 
 export const dashboardRoutes: FastifyPluginAsyncZod = async app => {
   app.addHook('onRequest', verifyJwt)
@@ -14,6 +18,7 @@ export const dashboardRoutes: FastifyPluginAsyncZod = async app => {
   app.get(
     '/daily',
     {
+      preHandler: [verifyRole('OWNER', 'VET')],
       schema: {
         summary: 'Get Daily Overview',
         tags: ['Dashboard'],
@@ -49,5 +54,19 @@ export const dashboardRoutes: FastifyPluginAsyncZod = async app => {
       },
     },
     getAdminAppointmentsTrendController
+  )
+
+  app.get(
+    '/recent-activities',
+    {
+      preHandler: [verifyRole('OWNER', 'VET')],
+      schema: {
+        summary: 'Get Recent Dashboard Activities',
+        tags: ['Dashboard'],
+        querystring: getRecentActivitiesQuerySchema,
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    getRecentActivitiesController
   )
 }

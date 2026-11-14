@@ -24,6 +24,7 @@ export class InMemoryClinicalRecordsRepository implements IClinicalRecordsReposi
       breathingNotes: null,
       routineGuidance: null,
       aiSummary: null,
+      observations: null,
       finalized: false,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -16,6 +16,8 @@ export interface UpdateClinicalRecordDTO {
   prescriptions?: string
   breathingNotes?: string
   routineGuidance?: string
+  /** CLI-01 — observações do atendimento, campo próprio (antes ia em routineGuidance). */
+  observations?: string
   finalized?: boolean
 }
 

@@ -21,6 +21,31 @@ describe('Exam routes', () => {
       expect(response.json().items).toHaveLength(1)
     })
 
+    it('lista exames do paciente filtrando por clinicalType', async () => {
+      prismaMock.examFile.findMany.mockResolvedValue([Factory.examFile({ clinicalType: 'HEMOGRAMA' })] as never)
+      const response = await app.injectAuth({
+        method: 'GET',
+        url: `/exams/patient/${SEED.PATIENT_ID}?clinicalType=HEMOGRAMA`,
+      })
+      expect(response.statusCode).toBe(HTTP.OK)
+      expect(response.json().items).toHaveLength(1)
+      expect(prismaMock.examFile.findMany).toHaveBeenCalledWith({
+        where: {
+          patientId: SEED.PATIENT_ID,
+          clinicalType: 'HEMOGRAMA',
+        },
+        orderBy: { uploadedAt: 'desc' },
+      })
+    })
+
+    it('rejeita clinicalType inválido com 422', async () => {
+      const response = await app.injectAuth({
+        method: 'GET',
+        url: `/exams/patient/${SEED.PATIENT_ID}?clinicalType=INVALIDO`,
+      })
+      expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
+    })
+
     it('lista vazia também é válida', async () => {
       prismaMock.examFile.findMany.mockResolvedValue([] as never)
       const response = await app.injectAuth({

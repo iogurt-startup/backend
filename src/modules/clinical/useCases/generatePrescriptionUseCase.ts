@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit'
 import { AppError } from '../../../shared/errors/app-error'
 import { prisma } from '../../../config/prisma'
-import { routineGuidanceToPlainText } from '../../../shared/clinical/routine-guidance-meta'
+import { clinicalObservationsToPlainText } from '../../../shared/clinical/routine-guidance-meta'
 
 import type { Role } from '@prisma/client'
 
@@ -241,7 +241,8 @@ export class GeneratePrescriptionUseCase {
       doc.moveDown(1)
 
       // ── Orientações (texto legível — sem JSON __IOUGURT_META__) ──
-      const guidancePlain = routineGuidanceToPlainText(record.routineGuidance)
+      // Lê do campo próprio (CLI-01) e do formato legado, nessa ordem.
+      const guidancePlain = clinicalObservationsToPlainText(record)
       if (guidancePlain) {
         doc
           .font('Helvetica-Bold')

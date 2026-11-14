@@ -24,3 +24,24 @@ app.listen({ port: env.PORT, host: '0.0.0.0' }, (err) => {
     reminderJob = startAppointmentReminderJob({ logger: app.log })
   }
 })
+
+let shuttingDown = false
+async function shutdown(signal: NodeJS.Signals) {
+  if (shuttingDown) return
+  shuttingDown = true
+  app.log.info({ signal }, 'Encerrando servidor...')
+  try {
+    await app.close()
+    process.exit(0)
+  } catch (err) {
+    app.log.error({ err }, 'Erro durante o encerramento gracioso')
+    process.exit(1)
+  }
+}
+
+process.once('SIGTERM', () => {
+  void shutdown('SIGTERM')
+})
+process.once('SIGINT', () => {
+  void shutdown('SIGINT')
+})

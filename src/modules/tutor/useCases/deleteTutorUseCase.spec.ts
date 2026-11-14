@@ -61,7 +61,8 @@ describe('DeleteTutorUseCase', () => {
       clinicId: 'clinic-1',
       tutorId: tutor.id,
       name: 'Rex',
-      species: 'Dog',
+      species: 'CANINE',
+      sex: 'MALE',
     })
 
     await expect(sut.execute({ id: tutor.id, clinicId: 'clinic-1' }))
@@ -81,7 +82,8 @@ describe('DeleteTutorUseCase', () => {
       clinicId: 'clinic-1',
       tutorId: tutor.id,
       name: 'Rex',
-      species: 'Dog',
+      species: 'CANINE',
+      sex: 'MALE',
     })
 
     // Exclui o paciente primeiro

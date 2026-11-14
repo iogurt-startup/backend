@@ -5,6 +5,7 @@ import type {
   DailyOverview,
   AdminMetrics,
   AppointmentTrendPoint,
+  RecentActivities,
 } from '../../repositories/IDashboardRepository'
 import dayjs from 'dayjs'
 
@@ -219,5 +220,49 @@ export class PrismaDashboardRepository implements IDashboardRepository {
     }
 
     return trend
+  }
+
+  async getRecentActivities(clinicId: string, limit: number): Promise<RecentActivities> {
+    const [appointments, patients] = await Promise.all([
+      prisma.appointment.findMany({
+        where: { patient: { clinicId } },
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          patientId: true,
+          updatedAt: true,
+          patient: { select: { name: true } },
+        },
+      }),
+      prisma.patient.findMany({
+        where: { clinicId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          tutor: { select: { fullName: true } },
+        },
+      }),
+    ])
+
+    return {
+      recentAppointments: appointments.map(appointment => ({
+        id: appointment.id,
+        patientId: appointment.patientId,
+        patientName: appointment.patient.name,
+        activityType: 'APPOINTMENT_UPDATED',
+        updatedAt: appointment.updatedAt,
+      })),
+      recentPatients: patients.map(patient => ({
+        id: patient.id,
+        name: patient.name,
+        tutorName: patient.tutor.fullName,
+        activityType: 'PATIENT_CREATED',
+        createdAt: patient.createdAt,
+      })),
+    }
   }
 }

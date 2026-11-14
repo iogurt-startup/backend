@@ -7,6 +7,11 @@ import { verifyRole } from '@shared/middleware/verify-role'
 import { isValidCnpj, onlyDigits } from '@shared/documents'
 import { Errors } from '../../../../core/errors'
 import { GetClinicByCodeUseCase } from '../../useCases/getClinicByCodeUseCase'
+import {
+  getClinicVaccinationAlertsController,
+  getClinicVaccinationAlertsParamsSchema,
+  getClinicVaccinationAlertsQuerySchema,
+} from '../../../clinical/infra/http/controllers/getClinicVaccinationAlertsController'
 
 const clinicSelect = {
   id: true,
@@ -120,4 +125,16 @@ export const clinicRoutes: FastifyPluginAsyncZod = async (app) => {
     })
     return { clinic }
   })
+
+  // ── Alertas de Vacinação da Clínica (EVO-06) ────────────
+  app.get('/:clinicId/vaccinations/alerts', {
+    preHandler: [verifyJwt, verifyRole('OWNER', 'VET')],
+    schema: {
+      tags: ['Clinic', 'Vaccinations'],
+      summary: 'Lista alertas de vacinas atrasadas ou próximas ao vencimento para a clínica',
+      params: getClinicVaccinationAlertsParamsSchema,
+      querystring: getClinicVaccinationAlertsQuerySchema,
+      security: [{ bearerAuth: [] }],
+    },
+  }, getClinicVaccinationAlertsController)
 }

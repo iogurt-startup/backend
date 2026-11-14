@@ -32,6 +32,14 @@ services:
     ports:
       - "3001:3000"
     volumes:
+      # O bind mount abaixo já faz os uploads (exames e fotos de pacientes)
+      # caírem em ./uploads na máquina do desenvolvedor, então em dev eles
+      # sobrevivem a restart e recriação do container.
+      #
+      # ATENÇÃO para quem cuida do deploy: isso NÃO vale em produção, onde não
+      # há bind mount. Esses arquivos ficam em disco, não no banco, e o caminho
+      # é configurável por UPLOADS_DIR. Sem um volume persistente apontado para
+      # ele, todo exame e toda foto somem a cada redeploy.
       - .:/app
       - /app/node_modules
     depends_on:

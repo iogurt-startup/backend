@@ -5,8 +5,9 @@ import fs from 'fs'
 import path from 'path'
 import { pipeline } from 'stream/promises'
 import { AppError } from '@shared/errors/app-error'
+import { UPLOADS_DIR } from '@config/uploads'
+import { clinicalExamTypeSchema } from '../../../examTypes'
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads')
 const PDF_MIME = 'application/pdf'
 
 export async function uploadExamFileController(
@@ -24,6 +25,18 @@ export async function uploadExamFileController(
 
   const clinicalRecordIdField = data.fields.clinicalRecordId as unknown as { value: string } | undefined
   const clinicalRecordId = clinicalRecordIdField?.value
+
+  const clinicalTypeField = data.fields.clinicalType as unknown as { value: string } | undefined
+  const rawClinicalType = clinicalTypeField?.value?.trim()
+
+  let clinicalType: string | null = null
+  if (rawClinicalType) {
+    const parsed = clinicalExamTypeSchema.safeParse(rawClinicalType.toUpperCase())
+    if (!parsed.success) {
+      throw new AppError('Tipo clínico de exame inválido.', 400)
+    }
+    clinicalType = parsed.data
+  }
 
   if (!patientId) {
     throw new AppError('patientId é obrigatório.', 400)
@@ -58,6 +71,7 @@ export async function uploadExamFileController(
       fileName: data.filename,
       fileUrl,
       fileType,
+      clinicalType,
     })
     return reply.status(201).send(examFile)
   } catch (error) {

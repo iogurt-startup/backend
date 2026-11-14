@@ -1,4 +1,5 @@
 import type { Tutor } from '@prisma/client'
+import type { TutorAlternateContact } from '../tutorContact'
 
 export type { Tutor }
 
@@ -10,6 +11,7 @@ export interface CreateTutorDTO {
   email?: string
   address?: string
   insurance?: string
+  alternateContacts?: TutorAlternateContact[]
 }
 
 export interface UpdateTutorDTO {
@@ -19,6 +21,7 @@ export interface UpdateTutorDTO {
   email?: string
   address?: string
   insurance?: string
+  alternateContacts?: TutorAlternateContact[]
 }
 
 export interface ListTutorsDTO {

@@ -44,6 +44,14 @@ export class ListTutorAppointmentsUseCase {
             species: true,
           },
         },
+        // Só id e nome: e-mail e CRMV do veterinário não vão para o tutor.
+        // Nulo enquanto a solicitação aguarda aprovação (PENDING_APPROVAL).
+        vet: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     })
 

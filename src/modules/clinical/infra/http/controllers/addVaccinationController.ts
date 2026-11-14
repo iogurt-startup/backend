@@ -7,6 +7,8 @@ export const addVaccinationBodySchema = z.object({
   vaccineName: z.string().min(2),
   appliedAt: z.string().datetime().optional(),
   nextDoseAt: z.string().datetime().optional(),
+  doseNumber: z.coerce.number().int().positive().optional().nullable(),
+  intervalDays: z.coerce.number().int().positive().optional().nullable(),
   status: z.enum(['UP_TO_DATE', 'PENDING', 'OVERDUE']),
 })
 

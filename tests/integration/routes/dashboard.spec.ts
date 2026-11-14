@@ -86,4 +86,60 @@ describe('Dashboard routes', () => {
       expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
     })
   })
+
+  describe('GET /dashboard/recent-activities', () => {
+    it.each([ROLE.OWNER, ROLE.VET])('permite acesso para %s', async (role) => {
+      prismaMock.appointment.findMany.mockResolvedValue([{
+        id: SEED.APPOINTMENT_ID,
+        patientId: SEED.PATIENT_ID,
+        updatedAt: new Date('2026-11-11T15:00:00.000Z'),
+        patient: { name: 'Rex' },
+      }] as never)
+      prismaMock.patient.findMany.mockResolvedValue([{
+        id: SEED.PATIENT_ID,
+        name: 'Rex',
+        createdAt: new Date('2026-11-11T14:00:00.000Z'),
+        tutor: { fullName: 'Maria Silva' },
+      }] as never)
+
+      const response = await app.injectAuth(
+        { method: 'GET', url: '/dashboard/recent-activities?limit=5' },
+        { role },
+      )
+
+      expect(response.statusCode).toBe(HTTP.OK)
+      expect(response.json()).toMatchObject({
+        recentAppointments: [{
+          id: SEED.APPOINTMENT_ID,
+          patientId: SEED.PATIENT_ID,
+          patientName: 'Rex',
+          activityType: 'APPOINTMENT_UPDATED',
+        }],
+        recentPatients: [{
+          id: SEED.PATIENT_ID,
+          name: 'Rex',
+          tutorName: 'Maria Silva',
+          activityType: 'PATIENT_CREATED',
+        }],
+      })
+    })
+
+    it('rejeita acesso de tutor', async () => {
+      const response = await app.injectAuth(
+        { method: 'GET', url: '/dashboard/recent-activities' },
+        { role: ROLE.TUTOR },
+      )
+
+      expect(response.statusCode).toBe(HTTP.FORBIDDEN)
+    })
+
+    it.each([0, 21])('rejeita limit fora do intervalo permitido (%s)', async (limit) => {
+      const response = await app.injectAuth({
+        method: 'GET',
+        url: `/dashboard/recent-activities?limit=${limit}`,
+      })
+
+      expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
+    })
+  })
 })

@@ -81,7 +81,8 @@ src/
     ├── schedule/
     ├── clinical/
     ├── dashboard/
-    └── portal/
+    ├── portal/
+    └── budget/
 ```
 
 ### Camadas dentro de cada módulo
@@ -149,6 +150,10 @@ Patient ───── ClinicalRecord  (1:N)
 Patient ───── Vaccination     (1:N)
 Patient ───── ExamFile        (1:N)
 ClinicalRecord ── ExamFile    (1:N opcional)
+Clinic ────── Budget          (1:N)
+Patient ───── Budget          (1:N)
+Tutor ─────── Budget          (1:N)
+Budget ────── BudgetItem      (1:N, onDelete: Cascade)
 ```
 
 ### Modelo físico (DDL)
@@ -168,6 +173,7 @@ Role:                OWNER | VET | TUTOR
 AppointmentStatus:   SCHEDULED | IN_PROGRESS | COMPLETED | CANCELLED
 AppointmentCategory: VACCINATION | OBSERVATION | EXAM | SURGICAL
 VaccinationStatus:   UP_TO_DATE | PENDING | OVERDUE
+BudgetStatus:        DRAFT | PENDING | APPROVED | REJECTED | EXPIRED
 ```
 
 ---
@@ -181,14 +187,16 @@ VaccinationStatus:   UP_TO_DATE | PENDING | OVERDUE
   → Valida email + senha (bcrypt compare)
   → Gera access token JWT (30min)
   → Gera refresh token (7 dias, salvo no banco)
-  → Retorna JWT no body + refreshToken no cookie HttpOnly
+  → Web (header X-Client: web): cookies HttpOnly accessToken, refreshToken e csrfToken;
+    o body traz só { user, csrfToken }
+  → Mobile (sem X-Client): { user, accessToken, refreshToken } no body, sem cookies
 ```
 
 ### Fluxo de Renovação
 
 ```
 [POST /auth/refresh]
-  → Lê o cookie refreshToken
+  → Web: lê o cookie refreshToken (exige header X-CSRF-Token); mobile: lê do body
   → Valida no banco (existe e não expirou)
   → Gera novos tokens
 ```
@@ -252,6 +260,18 @@ request.user.role
 | `GET` | `/appointments` | Listar agendamentos do dia | 🔒 |
 | `DELETE` | `/appointments/:id` | Cancelar (requer justificativa) | 🔒 |
 | `PATCH` | `/appointments/:id/reschedule` | Reagendar (requer data futura) | 🔒 |
+
+#### Orçamentos (`/clinics/:clinicId/budgets`) — `OWNER` e `VET`
+O `:clinicId` da URL deve ser o da clínica do token (senão `403`). Valores monetários (`subtotal`, `totalAmount`) são calculados só no backend, com arredondamento a 2 casas: `totalAmount = soma(itens) - discount`, com `0 <= discount <= soma(itens)`.
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| `POST` | `/clinics/:clinicId/budgets` | Criar orçamento com itens (`DRAFT` ou `PENDING`) | 🔒 |
+| `GET` | `/clinics/:clinicId/budgets` | Listar paginado (`page`, `limit`) com filtros opcionais `status`, `search` (nome do paciente ou tutor, ≥2 caracteres), `patientId`, `from`/`to` (intervalo sobre a data de emissão, inclusivo) | 🔒 |
+| `GET` | `/clinics/:clinicId/budgets/:id` | Detalhes com itens, paciente e tutor | 🔒 |
+| `PATCH` | `/clinics/:clinicId/budgets/:id/status` | Alterar status (bloqueado após `APPROVED`: `409`) | 🔒 |
+
+Transições permitidas: `DRAFT → PENDING/EXPIRED`, `PENDING → APPROVED/REJECTED/EXPIRED`. `APPROVED`, `REJECTED` e `EXPIRED` são terminais; nenhum status volta a `DRAFT`.
 
 ---
 
@@ -694,7 +714,10 @@ Fastify é 2-3x mais rápido, tem suporte nativo a JSON Schema e integra perfeit
 Para os **use cases**, repositórios in-memory permitem testar regras de negócio puras sem banco. Para os **testes de integração de rota**, mockamos o Prisma client com `vitest-mock-extended` — assim o app Fastify sobe inteiro, mas as queries são determinísticas. As 191 specs rodam em ~3 segundos.
 
 ### Por que Refresh Token no cookie?
-Tokens no `localStorage` são vulneráveis a XSS. O cookie `HttpOnly` não é acessível via JavaScript. O access token (curta duração, 30min) fica no body da resposta.
+Tokens no `localStorage` são vulneráveis a XSS. O cookie `HttpOnly` não é acessível via JavaScript, então o web guarda access e refresh token só em cookies (`SameSite` configurável por `COOKIE_SAME_SITE`; `Secure` em produção e sempre que `SameSite=none`).
+
+### CSRF
+Cookies são enviados automaticamente pelo navegador, então as requisições autenticadas por cookie que alteram estado (POST/PUT/PATCH/DELETE e `/auth/refresh`) exigem o header `X-CSRF-Token` igual ao cookie `csrfToken` (double-submit com token assinado por HMAC). Requisições com `Authorization: Bearer` (app mobile) não usam cookie e por isso não precisam de CSRF.
 
 ### Por que senha temporária para o Tutor?
 O veterinário cadastra o email do tutor e o sistema gera 12 caracteres aleatórios seguros (`randomBytes`). A senha é retornada **uma única vez** na resposta — não é persistida em texto claro.

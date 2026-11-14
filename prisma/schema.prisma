@@ -19,9 +19,11 @@ model Clinic {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users    User[]
-  tutors   Tutor[]
-  patients Patient[]
+  users            User[]
+  tutors           Tutor[]
+  patients         Patient[]
+  budgets          Budget[]
+  hospitalizations Hospitalization[] // EVO-05
 
   @@map("clinics")
 }
@@ -46,6 +48,9 @@ model User {
   appointments    Appointment[]    @relation("vet_appointments")
   clinicalRecords ClinicalRecord[]
   tutorAccount    Tutor?
+  // EVO-05 — duas relacoes distintas: quem admitiu e quem registrou cada evolucao.
+  admittedHospitalizations Hospitalization[]          @relation("admitted_hospitalizations")
+  recordedEvolutions       HospitalizationEvolution[] @relation("recorded_evolutions")
 
   @@map("users")
 }
@@ -100,6 +105,7 @@ model Tutor {
   email     String?
   address   String?
   insurance String?  // convênio (US05)
+  alternateContacts Json? @map("alternate_contacts")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at") // soft delete (BE-02) — null = ativo
@@ -107,6 +113,7 @@ model Tutor {
   clinic   Clinic    @relation(fields: [clinicId], references: [id])
   user     User?     @relation(fields: [userId], references: [id])
   patients Patient[]
+  budgets  Budget[]
 
   @@unique([cpf, clinicId])   // mesmo tutor pode existir em clínicas diferentes
   @@unique([email, clinicId]) // email único por clínica (quando preenchido)
@@ -127,6 +134,8 @@ model Patient {
   allergies    String?
   species      String
   breed        String?
+  reproductiveCondition String?   @map("reproductive_condition")
+  coatDescription       String?   @map("coat_description") @db.Text
   tutorId      String    @map("tutor_id")
   clinicId     String    @map("clinic_id")
   createdAt    DateTime  @default(now()) @map("created_at")
@@ -139,6 +148,10 @@ model Patient {
   clinicalRecords ClinicalRecord[]
   vaccinations    Vaccination[]    // US11 — aba "Controle Imunológico"
   examFiles       ExamFile[]       // US12 — exames anexados
+  chronicConditions ChronicCondition[] // CLI-02 — Patologias crônicas
+  photos          PatientPhoto[]   // CLI-05 — Galeria de fotos do paciente
+  budgets          Budget[]          // EVO-01 — Orçamentos do paciente
+  hospitalizations Hospitalization[] // EVO-05 — Internações
 
   @@map("patients")
 }
@@ -169,6 +182,9 @@ model Appointment {
 }
 
 enum AppointmentCategory {
+  GENERAL
+  RETURN
+  SURGICAL_EVALUATION
   VACCINATION // Vacinação
   OBSERVATION // Observação
   EXAM        // Exame
@@ -199,6 +215,7 @@ model ClinicalRecord {
   breathingNotes   String?  @map("breathing_notes")             // US09
   routineGuidance  String?  @map("routine_guidance")  @db.Text  // US09
   aiSummary        String?  @map("ai_summary")        @db.Text  // US13
+  observations     String?  @db.Text                            // CLI-01 — observações gerais do atendimento
   finalized        Boolean  @default(false)                     // US09, US10
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
@@ -219,6 +236,8 @@ model Vaccination {
   vaccineName String            @map("vaccine_name")
   appliedAt   DateTime?         @map("applied_at")
   nextDoseAt  DateTime?         @map("next_dose_at") // aviso pendência (US11, US15)
+  doseNumber  Int?              @map("dose_number")   // CLI-06 — número da dose
+  intervalDays Int?             @map("interval_days") // CLI-06 — intervalo em dias para próxima dose
   status      VaccinationStatus @default(PENDING)
   createdAt   DateTime          @default(now()) @map("created_at")
 
@@ -242,10 +261,142 @@ model ExamFile {
   fileName         String   @map("file_name")
   fileUrl          String   @map("file_url") // path local em dev
   fileType         String   @map("file_type") // "pdf" | "image"
+  clinicalType     String?  @map("clinical_type") // CLI-03 — tipo clínico do exame
   uploadedAt       DateTime @default(now()) @map("uploaded_at")
 
   patient        Patient         @relation(fields: [patientId], references: [id])
   clinicalRecord ClinicalRecord? @relation(fields: [clinicalRecordId], references: [id])
 
   @@map("exam_files")
+}
+
+// ── Chronic Conditions (CLI-02) ──────────────────────
+
+model ChronicCondition {
+  id           String    @id @default(uuid())
+  patientId    String    @map("patient_id")
+  name         String
+  diagnosedAt  DateTime? @map("diagnosed_at")
+  status       String    @default("ACTIVE") // ACTIVE | INACTIVE | RESOLVED
+  observations String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("chronic_conditions")
+}
+
+// ── Patient Photos (CLI-05) ──────────────────────────
+
+model PatientPhoto {
+  id          String   @id @default(uuid())
+  patientId   String   @map("patient_id")
+  photoUrl    String   @map("photo_url")
+  description String?  @db.Text
+  takenAt     DateTime @default(now()) @map("taken_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("patient_photos")
+}
+
+// ── Budgets (EVO-01) ─────────────────────────────────
+
+enum BudgetStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Budget {
+  id          String       @id @default(uuid())
+  clinicId    String       @map("clinic_id")
+  patientId   String       @map("patient_id")
+  tutorId     String       @map("tutor_id")
+  status      BudgetStatus @default(DRAFT)
+  discount    Decimal      @default(0) @db.Decimal(10, 2)
+  totalAmount Decimal      @map("total_amount") @db.Decimal(10, 2)
+  notes       String?      @db.Text
+  validUntil  DateTime?    @map("valid_until")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  clinic  Clinic       @relation(fields: [clinicId], references: [id])
+  patient Patient      @relation(fields: [patientId], references: [id])
+  tutor   Tutor        @relation(fields: [tutorId], references: [id])
+  items   BudgetItem[]
+
+  @@index([clinicId, status])
+  @@index([patientId])
+  @@index([tutorId])
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id          String  @id @default(uuid())
+  budgetId    String  @map("budget_id")
+  description String
+  quantity    Float
+  unitPrice   Decimal @map("unit_price") @db.Decimal(10, 2)
+  subtotal    Decimal @db.Decimal(10, 2)
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+  @@map("budget_items")
+}
+
+// ── Hospitalizations (EVO-05) ────────────────────────
+
+model Hospitalization {
+  id              String                @id @default(uuid())
+  clinicId        String                @map("clinic_id")
+  patientId       String                @map("patient_id")
+  admittedByVetId String                @map("admitted_by_vet_id")
+  bedIdentifier   String                @map("bed_identifier") // ex: "Baia 03", "UTI 01"
+  reason          String                @db.Text
+  status          HospitalizationStatus @default(ADMITTED)
+  admittedAt      DateTime              @default(now()) @map("admitted_at")
+  dischargedAt    DateTime?             @map("discharged_at")
+  dischargeNotes  String?               @map("discharge_notes") @db.Text
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  clinic        Clinic                     @relation(fields: [clinicId], references: [id])
+  patient       Patient                    @relation(fields: [patientId], references: [id])
+  admittedByVet User                       @relation("admitted_hospitalizations", fields: [admittedByVetId], references: [id])
+  evolutions    HospitalizationEvolution[]
+
+  // O painel de leitos filtra por clinica e status a cada carregamento.
+  @@index([clinicId, status])
+  @@map("hospitalizations")
+}
+
+model HospitalizationEvolution {
+  id                String   @id @default(uuid())
+  hospitalizationId String   @map("hospitalization_id")
+  recordedByVetId   String   @map("recorded_by_vet_id")
+  temperature       Float?   // °C
+  heartRate         Int?     @map("heart_rate")       // bpm
+  respiratoryRate   Int?     @map("respiratory_rate") // mpm
+  mucousMembranes   String?  @map("mucous_membranes") // ex: "Normocoradas", "Pálidas"
+  notes             String   @db.Text                 // alimentação, hidratação, medicações
+  recordedAt        DateTime @default(now()) @map("recorded_at")
+
+  hospitalization Hospitalization @relation(fields: [hospitalizationId], references: [id], onDelete: Cascade)
+  recordedByVet   User            @relation("recorded_evolutions", fields: [recordedByVetId], references: [id])
+
+  // A timeline sempre le as evolucoes de uma internacao em ordem cronologica.
+  @@index([hospitalizationId, recordedAt])
+  @@map("hospitalization_evolutions")
+}
+
+enum HospitalizationStatus {
+  ADMITTED   // internado
+  CRITICAL   // internado, em estado critico
+  DISCHARGED // alta concedida
 }

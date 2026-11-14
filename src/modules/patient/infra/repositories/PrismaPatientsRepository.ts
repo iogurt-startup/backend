@@ -24,6 +24,12 @@ export class PrismaPatientsRepository implements IPatientsRepository {
   }
 
   async list({ clinicId, search, tutorId, species, updateDate, page = 1, perPage = 20 }: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }> {
+    const normalizedSearch = search?.trim()
+    const cpfSearch = normalizedSearch?.replace(/\D/g, '')
+    const isCpfSearch = Boolean(
+      normalizedSearch && /^[\d.\-\s]+$/.test(normalizedSearch) && cpfSearch,
+    )
+
     let dateFilter = {}
     if (updateDate && updateDate.length === 10) {
       const parts = updateDate.split('/')
@@ -46,11 +52,12 @@ export class PrismaPatientsRepository implements IPatientsRepository {
       ...(tutorId && { tutorId }),
       ...(species && { species }),
       ...dateFilter,
-      ...(search && {
+      ...(normalizedSearch && {
         OR: [
-          { name: { contains: search, mode: 'insensitive' as const } },
-          { species: { contains: search, mode: 'insensitive' as const } },
-          { tutor: { fullName: { contains: search, mode: 'insensitive' as const } } }
+          { name: { contains: normalizedSearch, mode: 'insensitive' as const } },
+          { species: { contains: normalizedSearch, mode: 'insensitive' as const } },
+          { tutor: { fullName: { contains: normalizedSearch, mode: 'insensitive' as const } } },
+          ...(isCpfSearch ? [{ tutor: { cpf: { contains: cpfSearch } } }] : []),
         ]
       }),
     }

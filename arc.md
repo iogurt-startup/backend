@@ -106,6 +106,12 @@ O projeto segue **Clean Architecture** com **Modular Factories**.
 - Leitura do histórico clínico sem edição
 - **Models**: reusa `Patient`, `ClinicalRecord`, `Vaccination` com filtros de permissão
 
+### 🚧 Épico 7: Orçamentos (`modules/budget`) — EVO-01
+
+- Rotas aninhadas em `/clinics/:clinicId/budgets` (`OWNER` e `VET`); o `clinicId` da URL precisa ser o do token
+- Totais calculados só no backend (2 casas); `APPROVED` bloqueia qualquer alteração de status
+- **Models**: `Budget`, `BudgetItem` (enum `BudgetStatus`), ligados a `Clinic`, `Patient` e `Tutor`
+
 ---
 
 ## 🎯 Princípios Core
@@ -170,6 +176,10 @@ clinical_records (id, patient_id, vet_id, appointment_id?, weight_kg, clinical_n
 
 vaccinations     (id, patient_id, vaccine_name, applied_at, next_dose_at, status, ...)
 exam_files       (id, patient_id, clinical_record_id?, file_name, file_url, file_type, ...)
+
+-- Épico 7: Orçamentos (EVO-01)
+budgets          (id, clinic_id, patient_id, tutor_id, status, discount, total_amount, notes?, valid_until?, ...)
+budget_items     (id, budget_id, description, quantity, unit_price, subtotal)  -- ON DELETE CASCADE
 ```
 
 ### Decisões de Design

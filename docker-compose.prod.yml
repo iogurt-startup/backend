@@ -1,0 +1,75 @@
+# Stack de Produção do IOUGURT (VPS ~/app/iougurt/docker-compose.yml)
+#
+# Pré-requisitos na VPS:
+#   1. Copie este arquivo para ~/app/iougurt/docker-compose.yml
+#   2. Crie os arquivos ~/app/iougurt/.env.db e ~/app/iougurt/.env.api
+#      (baseados em .env.production.example) com permissão `chmod 600 .env.*`
+#   3. Configure DOCKERHUB_USERNAME e IMAGE_TAG (ou use :latest por padrão)
+#   4. Configure um reverse proxy TLS externo (Caddy/Nginx/Traefik) no host
+#      apontando o tráfego HTTPS (443) para http://127.0.0.1:8080
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: iougurt-db
+    restart: unless-stopped
+    env_file:
+      - .env.db
+    networks:
+      - iougurt
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  api:
+    image: ${DOCKERHUB_USERNAME:-iougurt}/iougurt-api:${API_IMAGE_TAG:-latest}
+    container_name: iougurt-api
+    restart: unless-stopped
+    env_file:
+      - .env.api
+    networks:
+      - iougurt
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/health/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-iougurt}/iougurt-frontend:${FRONTEND_IMAGE_TAG:-latest}
+    container_name: iougurt-frontend
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: http://api:3000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:8080"
+    networks:
+      - iougurt
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pgdata:
+  uploads_data:
+
+networks:
+  iougurt:
+    name: iougurt-shared

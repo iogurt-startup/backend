@@ -1,4 +1,5 @@
 import type { Patient, Tutor } from '@prisma/client'
+import type { PatientSex, PatientSpecies, ReproductiveCondition } from '../patientFields'
 
 export type { Patient }
 
@@ -8,10 +9,12 @@ export interface CreatePatientDTO {
   name: string
   tutorId: string
   clinicId: string
-  species: string
+  species: PatientSpecies
   breed?: string
   birthDate?: Date
-  sex?: string
+  sex: PatientSex
+  reproductiveCondition?: ReproductiveCondition
+  coatDescription?: string
   weightKg?: number
   observations?: string
   microchip?: string
@@ -21,10 +24,12 @@ export interface CreatePatientDTO {
 
 export interface UpdatePatientDTO {
   name?: string
-  species?: string
+  species?: PatientSpecies
   breed?: string
   birthDate?: Date
-  sex?: string
+  sex?: PatientSex
+  reproductiveCondition?: ReproductiveCondition | null
+  coatDescription?: string | null
   weightKg?: number
   observations?: string
   microchip?: string

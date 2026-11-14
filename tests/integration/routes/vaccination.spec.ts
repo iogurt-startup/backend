@@ -32,6 +32,45 @@ describe('Vaccination routes', () => {
       expect(response.statusCode).toBe(HTTP.CREATED)
     })
 
+    it('adiciona vacina UP_TO_DATE calculando nextDoseAt a partir do intervalo e persistindo doseNumber e intervalDays', async () => {
+      prismaMock.patient.findFirst.mockResolvedValue(Factory.patient() as never)
+      prismaMock.vaccination.create.mockImplementation(async ({ data }: any) => {
+        return Factory.vaccination({
+          ...data,
+          id: SEED.VACCINATION_ID,
+          createdAt: new Date(),
+        }) as never
+      })
+
+      const response = await app.injectAuth({
+        method: 'POST',
+        url: '/vaccinations',
+        payload: {
+          patientId: SEED.PATIENT_ID,
+          vaccineName: 'V10',
+          status: 'UP_TO_DATE',
+          appliedAt: '2026-05-10T10:00:00.000Z',
+          doseNumber: 1,
+          intervalDays: 21,
+        },
+      })
+
+      expect(response.statusCode).toBe(HTTP.CREATED)
+      const body = response.json()
+      expect(body.doseNumber).toBe(1)
+      expect(body.intervalDays).toBe(21)
+      expect(new Date(body.nextDoseAt).toISOString()).toBe(new Date('2026-05-31T10:00:00.000Z').toISOString())
+      expect(prismaMock.vaccination.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            doseNumber: 1,
+            intervalDays: 21,
+            nextDoseAt: new Date('2026-05-31T10:00:00.000Z'),
+          }),
+        })
+      )
+    })
+
     it('rejeita UP_TO_DATE sem appliedAt', async () => {
       prismaMock.patient.findFirst.mockResolvedValue(Factory.patient() as never)
       const response = await app.injectAuth({

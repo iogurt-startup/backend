@@ -42,12 +42,21 @@ export interface CreateAppointmentDTO {
   observation?: string
 }
 
+export interface UpdateAppointmentDTO {
+  vetId?: string
+  dateTime?: Date
+  endDateTime?: Date | null
+  category?: AppointmentCategory
+  observation?: string | null
+}
+
 export interface IAppointmentsRepository {
   create(data: CreateAppointmentDTO): Promise<Appointment>
+  update(id: string, data: UpdateAppointmentDTO): Promise<Appointment>
   findById(id: string, clinicId: string): Promise<Appointment | null>
   findConflict(vetId: string, dateTime: Date, endDateTime: Date, excludeId?: string): Promise<Appointment | null>
-  listByDay(date: Date, clinicId: string, vetId?: string): Promise<AppointmentWithRelations[]>
-  listByStatus(status: AppointmentStatus, clinicId: string, date?: Date): Promise<AppointmentWithRelations[]>
+  listByDay(date: Date, clinicId: string, vetId?: string, tzOffsetMinutes?: number): Promise<AppointmentWithRelations[]>
+  listByStatus(status: AppointmentStatus, clinicId: string, date?: Date, tzOffsetMinutes?: number): Promise<AppointmentWithRelations[]>
   updateStatus(id: string, status: AppointmentStatus, endDateTime?: Date): Promise<Appointment>
   cancel(id: string, reason: string): Promise<Appointment>
   reschedule(id: string, newDateTime: Date, newEndDateTime?: Date): Promise<Appointment>

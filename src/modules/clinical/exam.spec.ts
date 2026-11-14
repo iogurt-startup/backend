@@ -18,10 +18,11 @@ describe('Exam Files Use Cases', () => {
     listUseCase = new ListPatientExamsUseCase(examFilesRepository)
   })
 
-  it('should upload an exam file', async () => {
+  it('should upload an exam file without clinicalType (legacy)', async () => {
     const patient = await patientsRepository.create({
       name: 'Luna',
-      species: 'Cat',
+      species: 'FELINE',
+      sex: 'FEMALE',
       tutorId: 'tutor-xyz',
       clinicId: 'clinic-1',
     })
@@ -36,6 +37,30 @@ describe('Exam Files Use Cases', () => {
 
     expect(file.id).toBeDefined()
     expect(file.fileUrl).toBe('/uploads/abc-def.pdf')
+    expect(file.clinicalType).toBeNull()
+  })
+
+  it('should upload an exam file with clinicalType', async () => {
+    const patient = await patientsRepository.create({
+      name: 'Luna',
+      species: 'FELINE',
+      sex: 'FEMALE',
+      tutorId: 'tutor-xyz',
+      clinicId: 'clinic-1',
+    })
+
+    const file = await uploadUseCase.execute({
+      patientId: patient.id,
+      clinicId: 'clinic-1',
+      fileName: 'hemograma.pdf',
+      fileUrl: '/uploads/hemograma.pdf',
+      fileType: 'pdf',
+      clinicalType: 'HEMOGRAMA',
+    })
+
+    expect(file.id).toBeDefined()
+    expect(file.fileUrl).toBe('/uploads/hemograma.pdf')
+    expect(file.clinicalType).toBe('HEMOGRAMA')
   })
 
   it('should not allow upload for non-existent patient', async () => {
@@ -48,10 +73,11 @@ describe('Exam Files Use Cases', () => {
     })).rejects.toThrow('Paciente não encontrado')
   })
 
-  it('should list all patient exam files', async () => {
+  it('should list all patient exam files and filter by clinicalType', async () => {
     const patient = await patientsRepository.create({
       name: 'Luna',
-      species: 'Cat',
+      species: 'FELINE',
+      sex: 'FEMALE',
       tutorId: 'tutor-xyz',
       clinicId: 'clinic-1',
     })
@@ -62,6 +88,7 @@ describe('Exam Files Use Cases', () => {
       fileName: 'blood_test.pdf',
       fileUrl: '/uploads/blood.pdf',
       fileType: 'pdf',
+      clinicalType: 'HEMOGRAMA',
     })
 
     await uploadUseCase.execute({
@@ -70,10 +97,35 @@ describe('Exam Files Use Cases', () => {
       fileName: 'xray.png',
       fileUrl: '/uploads/xray.png',
       fileType: 'image',
+      clinicalType: 'RAIO_X',
     })
 
-    const exams = await listUseCase.execute({ patientId: patient.id })
-    expect(exams.length).toBe(2)
-    // Results are ordered by uploadedAt desc, so length 2 is guaranteed anyway
+    await uploadUseCase.execute({
+      patientId: patient.id,
+      clinicId: 'clinic-1',
+      fileName: 'legacy.pdf',
+      fileUrl: '/uploads/legacy.pdf',
+      fileType: 'pdf',
+    })
+
+    // List all
+    const allExams = await listUseCase.execute({ patientId: patient.id })
+    expect(allExams.length).toBe(3)
+
+    // Filter by HEMOGRAMA
+    const hemogramas = await listUseCase.execute({ patientId: patient.id, clinicalType: 'HEMOGRAMA' })
+    expect(hemogramas.length).toBe(1)
+    expect(hemogramas[0].fileName).toBe('blood_test.pdf')
+    expect(hemogramas[0].clinicalType).toBe('HEMOGRAMA')
+
+    // Filter by RAIO_X
+    const raiosX = await listUseCase.execute({ patientId: patient.id, clinicalType: 'RAIO_X' })
+    expect(raiosX.length).toBe(1)
+    expect(raiosX[0].fileName).toBe('xray.png')
+    expect(raiosX[0].clinicalType).toBe('RAIO_X')
+
+    // Filter by ULTRASSOM (none)
+    const ultrassons = await listUseCase.execute({ patientId: patient.id, clinicalType: 'ULTRASSOM' })
+    expect(ultrassons.length).toBe(0)
   })
 })

@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { isValidCpf, onlyDigits } from '@shared/documents'
 import { makeUpdateTutorUseCase } from '../../../useCases/factories/makeUpdateTutorUseCase'
+import { tutorAlternateContactsSchema } from '../../../tutorContact'
 
 export const updateTutorBodySchema = z.object({
   cpf: z
@@ -14,6 +15,7 @@ export const updateTutorBodySchema = z.object({
   email: z.string().email().optional(),
   address: z.string().optional(),
   insurance: z.string().optional(),
+  alternateContacts: tutorAlternateContactsSchema.optional(),
 })
 
 export async function updateTutorController(

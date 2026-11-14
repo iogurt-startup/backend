@@ -10,6 +10,7 @@ interface UploadExamFileRequest {
   fileName: string
   fileUrl: string
   fileType: string
+  clinicalType?: string | null
 }
 
 export class UploadExamFileUseCase {
@@ -33,6 +34,7 @@ export class UploadExamFileUseCase {
     fileName,
     fileUrl,
     fileType,
+    clinicalType,
   }: UploadExamFileRequest): Promise<ExamFile> {
     await this.assertPatientBelongsToClinic(patientId, clinicId)
 
@@ -42,6 +44,7 @@ export class UploadExamFileUseCase {
       fileName,
       fileUrl,
       fileType,
+      clinicalType,
     })
   }
 }

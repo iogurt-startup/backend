@@ -16,8 +16,11 @@ type CleanupClinicParams = z.infer<typeof cleanupClinicParamsSchema>
  * usuário), então a deleção é feita manualmente na ordem inversa das
  * dependências, dentro de uma única transação:
  *
- *   examFiles → vaccinations → clinicalRecords → appointments
+ *   examFiles → vaccinations → clinicalRecords → appointments → budgets
  *   → patients → tutors → users (→ refresh/password tokens via cascade) → clinic
+ *
+ * Budgets (e seus itens, via cascade) precisam sair antes de patients/tutors,
+ * pois suas FKs são RESTRICT.
  */
 export async function cleanupClinicController(
   request: FastifyRequest<{ Params: CleanupClinicParams }>,
@@ -63,6 +66,7 @@ export async function cleanupClinicController(
     const appointments = await tx.appointment.deleteMany({
       where: { OR: [{ patientId: { in: patientIds } }, { vetId: { in: userIds } }] },
     })
+    const budgets = await tx.budget.deleteMany({ where: { clinicId } })
     const patientsDeleted = await tx.patient.deleteMany({ where: { clinicId } })
     const tutors = await tx.tutor.deleteMany({ where: { clinicId } })
     const usersDeleted = await tx.user.deleteMany({ where: { clinicId } })
@@ -73,6 +77,7 @@ export async function cleanupClinicController(
       vaccinations: vaccinations.count,
       clinicalRecords: clinicalRecords.count,
       appointments: appointments.count,
+      budgets: budgets.count,
       patients: patientsDeleted.count,
       tutors: tutors.count,
       users: usersDeleted.count,

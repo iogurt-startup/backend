@@ -3,12 +3,24 @@ import type { IExamFilesRepository, CreateExamFileDTO, ExamFile } from '../../re
 
 export class PrismaExamFilesRepository implements IExamFilesRepository {
   async create(data: CreateExamFileDTO): Promise<ExamFile> {
-    return prisma.examFile.create({ data })
+    return prisma.examFile.create({
+      data: {
+        patientId: data.patientId,
+        clinicalRecordId: data.clinicalRecordId,
+        fileName: data.fileName,
+        fileUrl: data.fileUrl,
+        fileType: data.fileType,
+        clinicalType: data.clinicalType ?? null,
+      },
+    })
   }
 
-  async listByPatient(patientId: string): Promise<ExamFile[]> {
+  async listByPatient(patientId: string, clinicalType?: string): Promise<ExamFile[]> {
     return prisma.examFile.findMany({
-      where: { patientId },
+      where: {
+        patientId,
+        ...(clinicalType ? { clinicalType } : {}),
+      },
       orderBy: { uploadedAt: 'desc' },
     })
   }

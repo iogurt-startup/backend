@@ -40,6 +40,18 @@ describe('CreateTutorUseCase', () => {
     const tutor2 = await sut.execute(makeInput({ clinicId: 'clinic-2' }))
     expect(tutor2.id).toBeDefined()
   })
+
+  it('deve criar tutor com contatos alternativos', async () => {
+    const repo = new InMemoryTutorsRepository()
+    const alternateContacts = [
+      { name: 'João Silva', phone: '61999991111', relationship: 'Cônjuge', hasWhatsApp: true },
+      { name: 'Ana Silva', phone: '61988882222', relationship: 'Irmã', hasWhatsApp: false },
+    ]
+
+    const tutor = await new CreateTutorUseCase(repo).execute(makeInput({ alternateContacts }))
+
+    expect(tutor.alternateContacts).toEqual(alternateContacts)
+  })
 })
 
 describe('GetTutorUseCase', () => {
@@ -100,5 +112,20 @@ describe('UpdateTutorUseCase', () => {
 
   it('deve lançar 404 para tutor inexistente', async () => {
     await expect(new UpdateTutorUseCase(new InMemoryTutorsRepository()).execute({ id: 'id-fake', clinicId: CLINIC_ID })).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('deve substituir e limpar os contatos alternativos', async () => {
+    const repo = new InMemoryTutorsRepository()
+    const created = await repo.create(makeInput())
+    const alternateContacts = [
+      { name: 'João Silva', phone: '61999991111', relationship: 'Cônjuge', hasWhatsApp: true },
+    ]
+    const sut = new UpdateTutorUseCase(repo)
+
+    const updated = await sut.execute({ id: created.id, clinicId: CLINIC_ID, alternateContacts })
+    expect(updated.alternateContacts).toEqual(alternateContacts)
+
+    const cleared = await sut.execute({ id: created.id, clinicId: CLINIC_ID, alternateContacts: [] })
+    expect(cleared.alternateContacts).toEqual([])
   })
 })

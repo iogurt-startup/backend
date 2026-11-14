@@ -7,7 +7,7 @@ export const createAppointmentBodySchema = z.object({
   vetId: z.string().uuid(),
   dateTime: z.string().datetime(),
   endDateTime: z.string().datetime().optional(),
-  category: z.enum(['VACCINATION', 'OBSERVATION', 'EXAM', 'SURGICAL']),
+  category: z.enum(['GENERAL', 'RETURN', 'SURGICAL_EVALUATION', 'VACCINATION', 'OBSERVATION', 'EXAM', 'SURGICAL']),
   observation: z.string().optional(),
 })
 

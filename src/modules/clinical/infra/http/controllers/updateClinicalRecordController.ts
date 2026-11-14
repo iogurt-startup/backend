@@ -14,6 +14,9 @@ export const updateClinicalRecordBodySchema = z.object({
   prescriptions: z.string().optional(),
   breathingNotes: z.string().optional(),
   routineGuidance: z.string().optional(),
+  // CLI-01 — campo próprio das observações do atendimento. Antes elas eram
+  // serializadas em JSON dentro de routineGuidance, que é de outra finalidade.
+  observations: z.string().optional(),
 })
 
 export async function updateClinicalRecordController(

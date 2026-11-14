@@ -1,5 +1,12 @@
 import { prisma } from '../../../../config/prisma'
-import type { IVaccinationsRepository, CreateVaccinationDTO, Vaccination, VaccinationStatus } from '../../repositories/IVaccinationsRepository'
+import type {
+  IVaccinationsRepository,
+  CreateVaccinationDTO,
+  Vaccination,
+  VaccinationStatus,
+  ListVaccinationAlertsFilters,
+} from '../../repositories/IVaccinationsRepository'
+import { classifyVaccinationAlerts, type VaccinationAlertItem } from '../../vaccinationAlerts'
 
 export class PrismaVaccinationsRepository implements IVaccinationsRepository {
   async create(data: CreateVaccinationDTO): Promise<Vaccination> {
@@ -19,5 +26,31 @@ export class PrismaVaccinationsRepository implements IVaccinationsRepository {
 
   async updateStatus(id: string, status: VaccinationStatus): Promise<Vaccination> {
     return prisma.vaccination.update({ where: { id }, data: { status } })
+  }
+
+  async findAlertsByClinic(
+    clinicId: string,
+    filters?: ListVaccinationAlertsFilters
+  ): Promise<VaccinationAlertItem[]> {
+    const rawRecords = await prisma.vaccination.findMany({
+      where: {
+        patient: {
+          clinicId,
+          deletedAt: null,
+        },
+      },
+      include: {
+        patient: {
+          include: {
+            tutor: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    })
+
+    return classifyVaccinationAlerts(rawRecords, filters)
   }
 }

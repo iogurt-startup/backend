@@ -7,6 +7,7 @@ import { cancelAppointmentController, cancelAppointmentParamsSchema, cancelAppoi
 import { rescheduleAppointmentController, rescheduleAppointmentParamsSchema, rescheduleAppointmentBodySchema } from './controllers/rescheduleAppointmentController'
 import { approveAppointmentController, approveAppointmentParamsSchema, approveAppointmentBodySchema } from './controllers/approveAppointmentController'
 import { rejectAppointmentController, rejectAppointmentParamsSchema, rejectAppointmentBodySchema } from './controllers/rejectAppointmentController'
+import { updateAppointmentBodySchema, updateAppointmentController, updateAppointmentParamsSchema } from './controllers/updateAppointmentController'
 
 export const appointmentRoutes: FastifyPluginAsyncZod = async (app) => {
   app.addHook('preHandler', verifyJwt)
@@ -29,6 +30,16 @@ export const appointmentRoutes: FastifyPluginAsyncZod = async (app) => {
       querystring: listAppointmentsByDayQuerySchema,
     },
   }, listAppointmentsByDayController)
+
+  app.patch('/:id', {
+    schema: {
+      tags: ['Appointments'],
+      summary: 'Editar dados de um atendimento agendado',
+      security: [{ bearerAuth: [] }],
+      params: updateAppointmentParamsSchema,
+      body: updateAppointmentBodySchema,
+    },
+  }, updateAppointmentController)
 
   app.delete('/:id', {
     schema: {

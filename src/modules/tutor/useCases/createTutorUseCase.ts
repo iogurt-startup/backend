@@ -1,16 +1,8 @@
 import { Errors } from '../../../core/errors'
-import type { ITutorsRepository } from '../repositories/ITutorsRepository'
+import type { CreateTutorDTO, ITutorsRepository } from '../repositories/ITutorsRepository'
 import type { Tutor } from '@prisma/client'
 
-interface CreateTutorInput {
-  clinicId: string
-  fullName: string
-  cpf: string
-  phone: string
-  email?: string
-  address?: string
-  insurance?: string
-}
+type CreateTutorInput = CreateTutorDTO
 
 export class CreateTutorUseCase {
   constructor(private tutorsRepository: ITutorsRepository) {}

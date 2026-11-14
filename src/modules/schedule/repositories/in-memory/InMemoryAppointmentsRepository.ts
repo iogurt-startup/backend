@@ -1,9 +1,11 @@
 import { randomUUID } from 'crypto'
+import { getDayRange } from '@shared/utils/dayRange'
 import type { Appointment } from '@prisma/client'
 import { AppointmentStatus } from '@prisma/client'
 import type {
   IAppointmentsRepository,
   CreateAppointmentDTO,
+  UpdateAppointmentDTO,
   AppointmentWithRelations,
   AppointmentReminderCandidate,
 } from '../IAppointmentsRepository'
@@ -70,6 +72,18 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
     return appointment
   }
 
+  async update(id: string, data: UpdateAppointmentDTO): Promise<Appointment> {
+    const index = this.items.findIndex(a => a.id === id)
+    this.items[index] = {
+      ...this.items[index],
+      ...data,
+      reminderSentAt: null,
+      updatedAt: new Date(),
+      ...(data.vetId && { vet: { id: data.vetId, name: 'VeterinÃ¡rio' } }),
+    }
+    return this.items[index]
+  }
+
   async findById(id: string, clinicId: string): Promise<Appointment | null> {
     return this.items.find(a => a.id === id && a.patient.clinicId === clinicId) ?? null
   }
@@ -96,12 +110,11 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
     ) ?? null
   }
 
-  async listByDay(date: Date, clinicId: string, vetId?: string): Promise<AppointmentWithRelations[]> {
-    const dateStr = date.toISOString().slice(0, 10) // 'YYYY-MM-DD'
+  async listByDay(date: Date, clinicId: string, vetId?: string, tzOffsetMinutes = 0): Promise<AppointmentWithRelations[]> {
+    const { start, end } = getDayRange(date, tzOffsetMinutes)
     return this.items.filter(a => {
-      const aDateStr = a.dateTime.toISOString().slice(0, 10)
       return (
-        aDateStr === dateStr &&
+        a.dateTime >= start && a.dateTime <= end &&
         a.patient.clinicId === clinicId &&
         (a.status === AppointmentStatus.SCHEDULED || a.status === AppointmentStatus.IN_PROGRESS || a.status === AppointmentStatus.COMPLETED) &&
         (!vetId || a.vetId === vetId)
@@ -109,13 +122,13 @@ export class InMemoryAppointmentsRepository implements IAppointmentsRepository {
     })
   }
 
-  async listByStatus(status: AppointmentStatus, clinicId: string, date?: Date): Promise<AppointmentWithRelations[]> {
-    const dateStr = date?.toISOString().slice(0, 10)
+  async listByStatus(status: AppointmentStatus, clinicId: string, date?: Date, tzOffsetMinutes = 0): Promise<AppointmentWithRelations[]> {
+    const range = date ? getDayRange(date, tzOffsetMinutes) : undefined
     return this.items
       .filter(a =>
         a.status === status &&
         a.patient.clinicId === clinicId &&
-        (!dateStr || a.dateTime.toISOString().slice(0, 10) === dateStr)
+        (!range || (a.dateTime >= range.start && a.dateTime <= range.end))
       )
       .sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
   }

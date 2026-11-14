@@ -281,6 +281,72 @@ describe('Clinical Records Module', () => {
     expect(updated.clinicalNotes).toBe('Paciente estável')
   })
 
+  // CLI-01 — observações do atendimento em campo próprio.
+  it('should save appointment observations in their own field', async () => {
+    const vetId = randomUUID()
+    const appointment = await appointmentsRepository.create({
+      patientId: 'patient-1',
+      vetId,
+      dateTime: new Date(),
+      category: 'OBSERVATION',
+    })
+
+    const record = await startUseCase.execute({
+      appointmentId: appointment.id,
+      vetId,
+      clinicId: 'clinic-1',
+    })
+
+    const updated = await updateUseCase.execute({
+      recordId: record.id,
+      vetId,
+      clinicId: 'clinic-1',
+      data: {
+        observations: 'Tutor relata tosse noturna há uma semana',
+        routineGuidance: 'Retorno em 15 dias',
+      },
+    })
+
+    expect(updated.observations).toBe('Tutor relata tosse noturna há uma semana')
+    // O campo de orientações volta a guardar só o que ele deveria guardar:
+    // texto puro, sem JSON embutido.
+    expect(updated.routineGuidance).toBe('Retorno em 15 dias')
+    expect(updated.routineGuidance).not.toContain('__IOUGURT_META__')
+  })
+
+  it('should keep observations untouched when the update omits them', async () => {
+    const vetId = randomUUID()
+    const appointment = await appointmentsRepository.create({
+      patientId: 'patient-1',
+      vetId,
+      dateTime: new Date(),
+      category: 'OBSERVATION',
+    })
+
+    const record = await startUseCase.execute({
+      appointmentId: appointment.id,
+      vetId,
+      clinicId: 'clinic-1',
+    })
+
+    await updateUseCase.execute({
+      recordId: record.id,
+      vetId,
+      clinicId: 'clinic-1',
+      data: { observations: 'Tosse noturna' },
+    })
+
+    const updated = await updateUseCase.execute({
+      recordId: record.id,
+      vetId,
+      clinicId: 'clinic-1',
+      data: { diagnosis: 'Traqueobronquite' },
+    })
+
+    expect(updated.diagnosis).toBe('Traqueobronquite')
+    expect(updated.observations).toBe('Tosse noturna')
+  })
+
   it('should finalize clinical record and mark appointment as COMPLETED', async () => {
     const vetId = randomUUID()
     const endDateTime = new Date('2099-01-01T10:30:00.000Z')

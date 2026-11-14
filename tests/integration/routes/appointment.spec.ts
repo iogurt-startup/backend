@@ -265,6 +265,59 @@ describe('Appointment routes', () => {
     })
   })
 
+  describe('PATCH /appointments/:id', () => {
+    it('edita parcialmente um atendimento agendado sem criar outro registro', async () => {
+      const existing = Factory.appointment({ category: 'GENERAL', observation: 'Original' })
+      const updated = { ...existing, category: 'RETURN', observation: 'Reavaliacao' }
+      prismaMock.appointment.findFirst.mockResolvedValue(existing as never)
+      prismaMock.appointment.update.mockResolvedValue(updated as never)
+
+      const response = await app.injectAuth({
+        method: 'PATCH',
+        url: `/appointments/${SEED.APPOINTMENT_ID}`,
+        payload: { category: 'RETURN', observation: 'Reavaliacao' },
+      })
+
+      expect(response.statusCode).toBe(HTTP.OK)
+      expect(response.json().appointment).toMatchObject({ category: 'RETURN', observation: 'Reavaliacao' })
+      expect(prismaMock.appointment.create).not.toHaveBeenCalled()
+      expect(prismaMock.appointment.update).toHaveBeenCalledWith({
+        where: { id: SEED.APPOINTMENT_ID },
+        data: { category: 'RETURN', observation: 'Reavaliacao', reminderSentAt: null },
+      })
+    })
+
+    it.each(['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const)(
+      'rejeita edicao quando status e %s',
+      async (status) => {
+        prismaMock.appointment.findFirst.mockResolvedValue(Factory.appointment({ status }) as never)
+        const response = await app.injectAuth({
+          method: 'PATCH',
+          url: `/appointments/${SEED.APPOINTMENT_ID}`,
+          payload: { category: 'RETURN' },
+        })
+        expect(response.statusCode).toBe(HTTP.CONFLICT)
+      },
+    )
+
+    it('rejeita corpo vazio com 422', async () => {
+      const response = await app.injectAuth({
+        method: 'PATCH',
+        url: `/appointments/${SEED.APPOINTMENT_ID}`,
+        payload: {},
+      })
+      expect(response.statusCode).toBe(HTTP.UNPROCESSABLE)
+    })
+
+    it('rejeita tutor com 403', async () => {
+      const response = await app.injectAuth(
+        { method: 'PATCH', url: `/appointments/${SEED.APPOINTMENT_ID}`, payload: { category: 'RETURN' } },
+        { role: ROLE.TUTOR, userId: SEED.TUTOR_USER_ID },
+      )
+      expect(response.statusCode).toBe(HTTP.FORBIDDEN)
+    })
+  })
+
   describe('GET /appointments?status=', () => {
     it('lista solicitações pendentes da clínica sem exigir date', async () => {
       prismaMock.appointment.findMany.mockResolvedValue([withRelations(pendingAppointment())] as never)

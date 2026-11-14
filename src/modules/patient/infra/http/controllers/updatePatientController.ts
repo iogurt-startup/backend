@@ -2,13 +2,17 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { isValidCpf, onlyDigits } from '@shared/documents'
 import { makeUpdatePatientUseCase } from '../../../useCases/factories/makeUpdatePatientUseCase'
+import { PATIENT_SEXES, PATIENT_SPECIES, REPRODUCTIVE_CONDITIONS } from '../../../patientFields'
+import { tutorAlternateContactsSchema } from '../../../../tutor/tutorContact'
 
 export const updatePatientBodySchema = z.object({
   name: z.string().min(1).optional(),
-  species: z.string().optional(),
-  breed: z.string().optional(),
+  species: z.enum(PATIENT_SPECIES).optional(),
+  breed: z.string().trim().min(1).optional(),
   birthDate: z.coerce.date().optional(),
-  sex: z.string().optional(),
+  sex: z.enum(PATIENT_SEXES).optional(),
+  reproductiveCondition: z.enum(REPRODUCTIVE_CONDITIONS).nullable().optional(),
+  coatDescription: z.string().trim().min(1).max(500).nullable().optional(),
   weightKg: z.number().max(999.99).optional(),
   observations: z.string().optional(),
   microchip: z.string().optional(),
@@ -25,6 +29,7 @@ export const updatePatientBodySchema = z.object({
     email: z.string().email().optional(),
     address: z.string().optional(),
     insurance: z.string().optional(),
+    alternateContacts: tutorAlternateContactsSchema.optional(),
   }).optional(),
 })
 

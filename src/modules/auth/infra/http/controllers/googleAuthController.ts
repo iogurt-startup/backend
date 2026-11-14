@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { makeGoogleAuthUseCase } from '../../../useCases/factories/makeGoogleAuthUseCase'
 import type { Role } from '@prisma/client'
+import { buildSessionResponse } from '@shared/auth/session'
 
 export const googleAuthBodySchema = z.object({
   accessToken: z.string().min(1, 'accessToken do Google é obrigatório'),
@@ -20,9 +21,11 @@ export async function googleAuthController(request: FastifyRequest, reply: Fasti
   })
 
   return reply.status(200).send({
-    user: result.user,
-    accessToken: jwtToken,
-    refreshToken: result.refreshToken,
+    ...buildSessionResponse(request, reply, {
+      user: result.user,
+      accessToken: jwtToken,
+      refreshToken: result.refreshToken,
+    }),
     isNewUser: result.isNewUser,
   })
 }

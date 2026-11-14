@@ -4,12 +4,13 @@ import type { ExamFile } from '@prisma/client'
 
 interface ListPatientExamsRequest {
   patientId: string
+  clinicalType?: string
 }
 
 export class ListPatientExamsUseCase {
   constructor(private examFilesRepository: IExamFilesRepository) {}
 
-  async execute({ patientId }: ListPatientExamsRequest): Promise<ExamFile[]> {
-    return this.examFilesRepository.listByPatient(patientId)
+  async execute({ patientId, clinicalType }: ListPatientExamsRequest): Promise<ExamFile[]> {
+    return this.examFilesRepository.listByPatient(patientId, clinicalType)
   }
 }

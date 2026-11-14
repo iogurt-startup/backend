@@ -19,6 +19,7 @@ const dummyTutor: Tutor = {
   email: null,
   address: null,
   insurance: null,
+  alternateContacts: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
@@ -39,7 +40,9 @@ export class InMemoryPatientsRepository implements IPatientsRepository {
       species: data.species,
       breed: data.breed ?? null,
       birthDate: data.birthDate ?? null,
-      sex: data.sex ?? null,
+      sex: data.sex,
+      reproductiveCondition: data.reproductiveCondition ?? null,
+      coatDescription: data.coatDescription ?? null,
       weightKg: data.weightKg != null ? data.weightKg as any : null,
       observations: data.observations ?? null,
       microchip: data.microchip ?? null,
@@ -72,7 +75,18 @@ export class InMemoryPatientsRepository implements IPatientsRepository {
 
   async list({ clinicId, search, tutorId, page = 1, perPage = 20 }: ListPatientsDTO): Promise<{ patients: PatientWithTutor[]; total: number }> {
     let patients = this.active.filter(p => p.clinicId === clinicId)
-    if (search) patients = patients.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    if (search) {
+      const normalizedSearch = search.trim().toLowerCase()
+      const cpfSearch = normalizedSearch.replace(/\D/g, '')
+      const isCpfSearch = /^[\d.\-\s]+$/.test(normalizedSearch) && cpfSearch.length > 0
+
+      patients = patients.filter(p =>
+        p.name.toLowerCase().includes(normalizedSearch)
+        || p.species.toLowerCase().includes(normalizedSearch)
+        || p.tutor.fullName.toLowerCase().includes(normalizedSearch)
+        || (isCpfSearch && p.tutor.cpf.includes(cpfSearch)),
+      )
+    }
     if (tutorId) patients = patients.filter(p => p.tutorId === tutorId)
     const total = patients.length
     patients = patients.slice((page - 1) * perPage, page * perPage)

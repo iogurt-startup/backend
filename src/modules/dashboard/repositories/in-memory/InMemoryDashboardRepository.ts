@@ -3,6 +3,7 @@ import type {
   DailyOverview,
   AdminMetrics,
   AppointmentTrendPoint,
+  RecentActivities,
 } from '../IDashboardRepository'
 
 export class InMemoryDashboardRepository implements IDashboardRepository {
@@ -70,5 +71,26 @@ export class InMemoryDashboardRepository implements IDashboardRepository {
     }
 
     return trend
+  }
+
+  async getRecentActivities(clinicId: string, limit: number): Promise<RecentActivities> {
+    const now = new Date()
+
+    return {
+      recentAppointments: [{
+        id: 'appointment-1',
+        patientId: 'patient-1',
+        patientName: 'Rex',
+        activityType: 'APPOINTMENT_UPDATED' as const,
+        updatedAt: now,
+      }].slice(0, limit),
+      recentPatients: [{
+        id: 'patient-1',
+        name: 'Rex',
+        tutorName: 'Maria Silva',
+        activityType: 'PATIENT_CREATED' as const,
+        createdAt: now,
+      }].slice(0, limit),
+    }
   }
 }

@@ -17,7 +17,7 @@ FROM base AS dev
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN chown -R iougurt:iougurt /app
+RUN mkdir -p /app/uploads && chown -R iougurt:iougurt /app
 
 USER iougurt
 
@@ -25,20 +25,36 @@ EXPOSE 3000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && npm run dev"]
 
+# ── Builder (compila bundle ESM e poda devDependencies) ──
+FROM base AS builder
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json tsconfig.json ./
+COPY prisma ./prisma
+COPY src ./src
+
+RUN npx prisma generate \
+    && npm run build \
+    && npm prune --omit=dev --legacy-peer-deps \
+    && ./node_modules/.bin/prisma generate
+
 # ── Production ────────────────────────────────────────
 FROM base AS prod
 
 ENV NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
-RUN npx prisma generate && npm run build
-
-RUN chown -R iougurt:iougurt /app
+RUN mkdir -p /app/uploads && chown -R iougurt:iougurt /app
 
 USER iougurt
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -q -O /dev/null "http://127.0.0.1:${PORT:-3000}/health" || exit 1
+
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/server.js"]

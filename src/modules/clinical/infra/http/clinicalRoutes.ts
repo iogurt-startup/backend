@@ -9,9 +9,18 @@ import { getPatientHistoryController, getPatientHistoryParamsSchema } from './co
 import { generatePrescriptionController, generatePrescriptionParamsSchema } from './controllers/generatePrescriptionController'
 import { generateAISummaryController, generateAISummaryParamsSchema } from './controllers/generateAISummaryController'
 import { verifyJwt } from '@shared/middleware/verify-jwt'
+import { verifyRole } from '@shared/middleware/verify-role'
 
 export const clinicalRoutes: FastifyPluginAsyncZod = async app => {
   app.addHook('onRequest', verifyJwt)
+
+  // Prontuário é da equipe da clínica. A única exceção é a receita em PDF, que
+  // o tutor dono do animal baixa pelo portal (a posse é validada no use case).
+  const staffOnly = verifyRole('OWNER', 'VET')
+  app.addHook('onRequest', async (request, reply) => {
+    if (request.method === 'GET' && request.routeOptions.url?.endsWith('/:id/prescription')) return
+    return staffOnly(request, reply)
+  })
 
   app.post(
     '/',
